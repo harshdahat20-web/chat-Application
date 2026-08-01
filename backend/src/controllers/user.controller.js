@@ -27,5 +27,24 @@ const getProfile = async (req, res) => {
     });
   }
 };
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.user.id } }).select(
+      "-password",
+    );
 
-module.exports = { getProfile };
+    return res.status(200).json({
+      success: true,
+      message: "All user fetched successfully",
+      data: users,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+module.exports = { getProfile, getAllUsers };
