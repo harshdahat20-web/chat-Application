@@ -37,7 +37,7 @@ const sendMessage = async (req, res) => {
       text,
     });
     await message.populate("sender", "name profilePic");
-    
+
     conversation.lastMessage = message._id;
     await conversation.save();
 
@@ -55,4 +55,52 @@ const sendMessage = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage };
+const getMessage = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Conversation ID is required",
+      });
+    }
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+    if (
+      !conversation.participants.some(
+        (participant) => participant.toString() === req.user.id,
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to access this conversation",
+      });
+    }
+
+    const message = await Message.find({
+      conversation: conversationId,
+    })
+      .populate("sender", "name profilePic")
+      .sort({ createdAt: 1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Messages fetched successfully",
+      data: messages,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = { sendMessage, getMessage };
