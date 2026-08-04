@@ -3,15 +3,15 @@ const User = require("../models/user.model");
 
 const createConversation = async (req, res) => {
   try {
-    const { receivedId } = req.body;
+    const { receiverId } = req.body;
 
-    if (!receivedId) {
+    if (!receiverId) {
       return res.status(400).json({
         success: false,
-        message: "Recevied Id is required",
+        message: "Receiver Id is required",
       });
     }
-    if (receivedId === req.user.id) {
+    if (receiverId === req.user.id) {
       return res.status(400).json({
         success: false,
         message: "You cannot create a conversation with yourself",
@@ -19,7 +19,7 @@ const createConversation = async (req, res) => {
     }
     let conversation = await Conversation.findOne({
       participants: {
-        $all: [req.user.id, receivedId],
+        $all: [req.user.id, receiverId],
       },
       type: "direct",
     });
@@ -30,7 +30,7 @@ const createConversation = async (req, res) => {
         data: conversation,
       });
     }
-    const receiver = await User.findById(receivedId);
+    const receiver = await User.findById(receiverId);
     if (!receiver) {
       return res.status(404).json({
         success: false,
@@ -39,7 +39,7 @@ const createConversation = async (req, res) => {
     }
 
     conversation = await Conversation.create({
-      participants: [req.user.id, receivedId],
+      participants: [req.user.id, receiverId],
     });
     return res.status(201).json({
       success: true,
