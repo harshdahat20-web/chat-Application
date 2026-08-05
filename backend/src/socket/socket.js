@@ -7,7 +7,9 @@ const initializeSocket = (server) => {
       credentials: true,
     },
   });
+  io.on("connection", (socket) => {
+    console.log("User connected:", socket.id);
+  });
   return io;
 };
-
 module.exports = { initializeSocket };

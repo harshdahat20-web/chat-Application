@@ -7,10 +7,14 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = require("./src/app");
 const connectDB = require("./src/db/db");
+const { initializeSocket } = require("./src/socket/socket");
 
 connectDB();
 
 const server = http.createServer(app);
+
+const io = initializeSocket(server);
+
 
 const PORT = process.env.PORT || 3000;
 
