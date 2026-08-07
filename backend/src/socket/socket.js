@@ -1,14 +1,14 @@
 const { Server } = require("socket.io");
 
 const onlineUsers = {};
-
+let io;
 const initializeSocket = (server) => {
-  const io = new Server(server, {
-    cors: {
-      origin: "http://localhost:5173",
-      credentials: true,
-    },
-  });
+  io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+});
   io.on("connection", (socket) => {
     const userId = socket.handshake.auth.userId;
 
@@ -28,7 +28,10 @@ const initializeSocket = (server) => {
   return io;
 };
 
-const getReceiverSocketId = () => {
+const getReceiverSocketId = (userId) => {
   return onlineUsers[userId];
 };
-module.exports = { initializeSocket, getReceiverSocketId };
+const getIO = () => {
+  return io;
+};
+module.exports = { initializeSocket, getReceiverSocketId, getIO };
