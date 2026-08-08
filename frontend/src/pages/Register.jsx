@@ -21,8 +21,8 @@ export default function Register() {
 
     try {
       const data = await registerUser(form.name, form.email, form.password);
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.data) {
+        localStorage.setItem("user", JSON.stringify(data.data));
       }
       navigate("/home"); // apna actual home/dashboard route daal dena
     } catch (err) {

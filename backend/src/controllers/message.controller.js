@@ -49,7 +49,9 @@ const sendMessage = async (req, res) => {
     );
 
     const receiverSocketId = getReceiverSocketId(receiverId.toString());
-    
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", message);
+    }
     return res.status(201).json({
       success: true,
       message: "Message sent successfully",
@@ -67,12 +69,14 @@ const sendMessage = async (req, res) => {
 const getMessage = async (req, res) => {
   try {
     const { conversationId } = req.params;
+
     if (!conversationId) {
       return res.status(400).json({
         success: false,
         message: "Conversation ID is required",
       });
     }
+
     const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
@@ -81,6 +85,7 @@ const getMessage = async (req, res) => {
         message: "Conversation not found",
       });
     }
+
     if (
       !conversation.participants.some(
         (participant) => participant.toString() === req.user.id,
@@ -92,11 +97,13 @@ const getMessage = async (req, res) => {
       });
     }
 
-    const message = await Message.find({
+    const messages = await Message.find({
       conversation: conversationId,
     })
       .populate("sender", "name profilePic")
-      .sort({ createdAt: 1 });
+      .sort({
+        createdAt: 1,
+      });
 
     return res.status(200).json({
       success: true,
@@ -105,6 +112,7 @@ const getMessage = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
       success: false,
       message: "Internal server error",

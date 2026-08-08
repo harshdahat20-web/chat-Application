@@ -22,8 +22,8 @@ export default function Login() {
 
     try {
       const data = await loginUser(form.email, form.password);
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.data) {
+        localStorage.setItem("user", JSON.stringify(data.data));
       }
       navigate("/home"); // apna actual home/dashboard route daal dena
     } catch (err) {
@@ -73,7 +73,7 @@ export default function Login() {
           className="text-center mb-7"
         >
           <h1 className="text-xl font-heading font-semibold text-text-primary flex items-center justify-center gap-2">
-            Welcome Back 
+            Welcome Back
           </h1>
           <p className="text-sm text-text-secondary mt-1">
             Login to continue chatting with your friends
