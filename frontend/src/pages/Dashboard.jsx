@@ -10,7 +10,10 @@ import {
   ArrowLeft,
   Plus,
   X,
+  Trash2,
+  Smile,
 } from "lucide-react";
+import EmojiPicker from "emoji-picker-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { io } from "socket.io-client";
@@ -21,15 +24,10 @@ const SOCKET_URL =
   "http://localhost:3000";
 
 const AVATAR_OPTIONS = [
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Aiden",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Riya",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Kabir",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Meera",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Rohan",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Simran",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Vikram",
-  "https://api.dicebear.com/7.x/adventurer/svg?seed=Ananya",
-  "https://mir-s3-cdn-cf.behance.net/projects/404/f74493100189765.Y3JvcCwyMjA2LDE3MjUsMCw5MDY.png",
+  "/avatars/avatar1.png",
+  "/avatars/avatar2.png",
+  "/avatars/avatar3.png",
+  "/avatars/avatar4.png",
 ];
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -40,6 +38,7 @@ export default function Dashboard() {
   const [messages, setMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageText, setMessageText] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -51,6 +50,7 @@ export default function Dashboard() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editProfilePic, setEditProfilePic] = useState("");
+  const [conversationToDelete, setConversationToDelete] = useState(null);
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -149,6 +149,30 @@ export default function Dashboard() {
     });
   }, [messages]);
 
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+
+    const handleClickOutside = (event) => {
+      if (
+        !event.target.closest(".EmojiPickerReact") &&
+        !event.target.closest("[data-emoji-trigger]")
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPicker]);
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await api.delete(`/message/${messageId}`);
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
   const getConversationPartner = (conversation) => {
     return conversation.participants.find(
       (participant) => String(participant._id) !== currentUserId,
@@ -236,6 +260,34 @@ export default function Dashboard() {
       setMessageText("");
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  };
+
+  const handleEmojiClick = (emojiData) => {
+    setMessageText((prev) => prev + emojiData.emoji);
+  };
+
+  const promptDeleteConversation = (conversation, event) => {
+    event.stopPropagation();
+    setConversationToDelete(conversation);
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+
+    try {
+      await api.delete(`/conversation/${conversationToDelete._id}`);
+      setConversations((prev) =>
+        prev.filter((c) => c._id !== conversationToDelete._id),
+      );
+      if (selectedConversation?._id === conversationToDelete._id) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+    } finally {
+      setConversationToDelete(null);
     }
   };
 
@@ -337,7 +389,7 @@ export default function Dashboard() {
             onClick={openProfileModal}
             className="hidden sm:flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            {renderAvatar(profileData?.profilePic, "w-8 h-8")}
+            {renderAvatar(profileData?.profilePic, "w-12 h-12")}
             <span className="text-sm font-medium text-text-primary">
               {storedUser.name || "User"}
             </span>
@@ -362,11 +414,17 @@ export default function Dashboard() {
         >
           {/* Greeting header (mobile) */}
           <div className="px-5 pt-6 pb-4 sm:hidden flex items-center justify-between">
-            <button onClick={openProfileModal} className="text-left">
-              <p className="text-sm text-text-secondary">Hello,</p>
-              <h1 className="text-2xl font-heading font-bold text-text-primary">
-                {storedUser.name || "User"}
-              </h1>
+            <button
+              onClick={openProfileModal}
+              className="flex items-center gap-3 text-left"
+            >
+              {renderAvatar(profileData?.profilePic, "w-11 h-11")}
+              <div>
+                <p className="text-sm text-text-secondary">Hello,</p>
+                <h1 className="text-2xl font-heading font-bold text-text-primary">
+                  {storedUser.name || "User"}
+                </h1>
+              </div>
             </button>
             <button
               onClick={handleLogout}
@@ -432,7 +490,7 @@ export default function Dashboard() {
                   <button
                     key={conversation._id}
                     onClick={() => openConversation(conversation)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-colors duration-150 ${
+                    className={`group w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-colors duration-150 ${
                       selectedConversation?._id === conversation._id
                         ? "bg-brand-light"
                         : "hover:bg-background"
@@ -469,6 +527,13 @@ export default function Dashboard() {
                           "Start a conversation"}
                       </p>
                     </div>
+
+                    <button
+                      onClick={(e) => promptDeleteConversation(conversation, e)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </button>
                 );
               })
@@ -554,7 +619,7 @@ export default function Dashboard() {
                   ) : messages.length === 0 ? (
                     <div className="h-full flex items-center justify-center">
                       <p className="text-sm text-text-onBrand/70">
-                        No messages yet. Say hello 👋
+                        No messages yet. Say hello...
                       </p>
                     </div>
                   ) : (
@@ -568,12 +633,23 @@ export default function Dashboard() {
                       return (
                         <div
                           key={chatMessage._id}
-                          className={`flex ${
+                          className={`group flex items-center gap-1.5 ${
                             isCurrentUserMessage
                               ? "justify-end"
                               : "justify-start"
                           }`}
                         >
+                          {isCurrentUserMessage && (
+                            <button
+                              onClick={() =>
+                                handleDeleteMessage(chatMessage._id)
+                              }
+                              className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-error/10 text-text-onBrand/60 hover:text-error transition-all duration-150"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           <div
                             className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 rounded-2xl ${
                               isCurrentUserMessage
@@ -581,7 +657,7 @@ export default function Dashboard() {
                                 : "bg-white/15 text-text-onBrand backdrop-blur-sm rounded-bl-sm"
                             }`}
                           >
-                            <p className="text-sm break-words">
+                            <p className="text-sm font-bold break-words">
                               {chatMessage.text}
                             </p>
                           </div>
@@ -598,13 +674,32 @@ export default function Dashboard() {
                 onSubmit={handleSendMessage}
                 className="shrink-0 px-4 sm:px-5 -mt-6 relative z-10"
               >
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full right-4 sm:right-5 mb-2 z-20">
+                    <EmojiPicker
+                      onEmojiClick={handleEmojiClick}
+                      height={350}
+                      width={300}
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 bg-surface rounded-full shadow-lg px-2 py-2">
+                  <button
+                    type="button"
+                    data-emoji-trigger
+                    onClick={() => setShowEmojiPicker((prev) => !prev)}
+                    className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:text-brand hover:bg-brand-light transition-colors duration-200"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+
                   <input
                     type="text"
                     placeholder="Type a message..."
                     value={messageText}
                     onChange={(event) => setMessageText(event.target.value)}
-                    className="flex-1 bg-transparent px-3 py-2 text-sm text-text-primary focus:outline-none"
+                    className="flex-1 bg-transparent px-1 py-2 text-sm text-text-primary focus:outline-none"
                   />
                   <button
                     type="submit"
@@ -696,7 +791,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
               onClick={(event) => event.stopPropagation()}
-              className="bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm overflow-hidden"
+              className="bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md overflow-hidden"
             >
               <div className="p-4 border-b border-border flex items-center justify-between">
                 <h3 className="font-heading font-semibold text-text-primary">
@@ -715,8 +810,7 @@ export default function Dashboard() {
 
               <div className="p-6 flex flex-col items-center text-center">
                 {!isEditingProfile &&
-                  renderAvatar(profileData.profilePic, "w-20 h-20 mb-4")}
-
+                  renderAvatar(profileData.profilePic, "w-50 h-50 mb-5")}
                 {!isEditingProfile ? (
                   <>
                     <h2 className="text-lg font-heading font-semibold text-text-primary">
@@ -815,6 +909,60 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ================= DELETE CONFIRMATION MODAL ================= */}
+
+      <AnimatePresence>
+        {conversationToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+            onClick={() => setConversationToDelete(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(event) => event.stopPropagation()}
+              className="bg-surface rounded-2xl shadow-xl w-full max-w-xs overflow-hidden"
+            >
+              <div className="p-6 flex flex-col items-center text-center">
+                <div className="w-14 h-14 rounded-full bg-error/10 flex items-center justify-center mb-4">
+                  <Trash2 className="w-6 h-6 text-error" />
+                </div>
+
+                <h3 className="font-heading font-semibold text-text-primary mb-1.5">
+                  Delete conversation?
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Your chat with{" "}
+                  <span className="font-medium text-text-primary">
+                    {getConversationPartner(conversationToDelete)?.name}
+                  </span>{" "}
+                  will be permanently deleted. This cannot be undone.
+                </p>
+
+                <div className="flex gap-2 w-full mt-6">
+                  <button
+                    onClick={() => setConversationToDelete(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-sm font-medium hover:bg-background transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteConversation}
+                    className="flex-1 py-2.5 rounded-xl bg-error text-white text-sm font-medium hover:opacity-90 transition-opacity duration-200"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
