@@ -4,27 +4,27 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#6C5DD3",
-          dark: "#5B4BC4",
-          light: "#EDEBFB",
+          DEFAULT: '#C4746B',
+          dark: '#A85E56',
+          light: '#F0E0DD',
         },
-        background: "#F3F1FC",
-        surface: "#FFFFFF",
-        border: "#E5E3F5",
+        background: '#FAF6F5',
+        surface: '#FFFFFF',
+        border: '#E8DAD7',
 
         text: {
-          primary: "#1E1B39",
-          secondary: "#8B8AA3",
-          onBrand: "#FFFFFF",
+          primary: '#332B29',
+          secondary: '#8C7D79',
+          onBrand: '#FFFFFF',
         },
 
-        success: "#16A34A",
-        error: "#DC2626",
+        success: '#6B8E5A',
+        error: '#B5453C',
       },
       fontFamily: {
-        heading: ["Poppins", "sans-serif"],
-        body: ["Inter", "sans-serif"],
+        heading: ['Poppins', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
       },
     },
   },
-};
+}

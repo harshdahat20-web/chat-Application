@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     },
     bio: {
       type: String,
-      maxlength: 50,
+      maxlength: 250,
       default:""
     },
     lastSeen: {

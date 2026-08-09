@@ -3,9 +3,11 @@ import { motion } from "framer-motion";
 import { MessageCircle, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
@@ -22,7 +24,7 @@ export default function Register() {
     try {
       const data = await registerUser(form.name, form.email, form.password);
       if (data.data) {
-        localStorage.setItem("user", JSON.stringify(data.data));
+        login(data.data);
       }
       navigate("/home"); // apna actual home/dashboard route daal dena
     } catch (err) {
