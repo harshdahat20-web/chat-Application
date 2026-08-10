@@ -20,7 +20,7 @@ export default {
         error: "#DC2626",
       },
       fontFamily: {
-        heading: ["Poppins", "sans-serif"],
+        heading: ["Space Grotesk", "sans-serif"],
         body: ["Inter", "sans-serif"],
       },
     },
