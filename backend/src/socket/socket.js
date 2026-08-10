@@ -21,14 +21,13 @@ const initializeSocket = (server) => {
     }
 
     console.log("User connected:", socket.id);
-
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
       if (userId) {
         delete onlineUsers[userId];
         io.emit("onlineUsers", Object.keys(onlineUsers));
       }
 
-      console.log("User disconnected:", socket.id);
+      console.log("User disconnected:", socket.id, "Reason:", reason);
     });
   });
   return io;
