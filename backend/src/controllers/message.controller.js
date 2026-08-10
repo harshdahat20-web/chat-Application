@@ -48,9 +48,16 @@ const sendMessage = async (req, res) => {
       (participant) => participant.toString() !== req.user.id,
     );
 
+    
     const receiverSocketId = getReceiverSocketId(receiverId.toString());
+    console.log("Receiver ID:", receiverId.toString());
+    console.log("Receiver Socket ID:", receiverSocketId);
+
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", message);
+      console.log("Message emitted to receiver");
+    } else {
+      console.log("Receiver not online, message not emitted via socket");
     }
     return res.status(201).json({
       success: true,
@@ -154,4 +161,4 @@ const deleteMessage = async (req, res) => {
     });
   }
 };
-module.exports = { sendMessage, getMessage ,deleteMessage};
+module.exports = { sendMessage, getMessage, deleteMessage };
