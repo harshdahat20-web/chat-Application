@@ -96,38 +96,50 @@ export default function Dashboard() {
         return [...prev, newMessage];
       });
 
-      setConversations((prev) =>
-        prev
-          .map((c) =>
-            c._id === newMessage.conversation
-              ? {
-                  ...c,
-                  lastMessage: newMessage,
-                  updatedAt: newMessage.createdAt,
-                }
-              : c,
-          )
-          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
-      );
+      setConversations((prev) => {
+        const conversationExists = prev.some(
+          (c) => c._id === newMessage.conversation,
+        );
+
+        if (conversationExists) {
+          return prev
+            .map((c) =>
+              c._id === newMessage.conversation
+                ? {
+                    ...c,
+                    lastMessage: newMessage,
+                    updatedAt: newMessage.createdAt,
+                  }
+                : c,
+            )
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        }
+
+        refreshConversations();
+        return prev;
+      });
     });
 
     return () => socket.disconnect();
   }, [currentUserId]);
 
+  const refreshConversations = async () => {
+    try {
+      const response = await api.get("/conversation");
+      setConversations(response.data.data);
+    } catch (error) {
+      console.error("Error refreshing conversations:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        setIsLoadingConversations(true);
-        const response = await api.get("/conversation");
-        setConversations(response.data.data);
-      } catch (error) {
-        console.error("Error fetching conversations:", error);
-      } finally {
-        setIsLoadingConversations(false);
-      }
+    const loadConversations = async () => {
+      setIsLoadingConversations(true);
+      await refreshConversations();
+      setIsLoadingConversations(false);
     };
 
-    fetchConversations();
+    loadConversations();
   }, []);
 
   useEffect(() => {
