@@ -350,6 +350,7 @@ export default function Dashboard() {
   };
 
   // Group conversations alphabetically (A-Z, like the reference contacts list)
+
   const groupedConversations = filteredConversations.reduce(
     (groups, conversation) => {
       const partner = getConversationPartner(conversation);
@@ -364,7 +365,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-dvh flex flex-col bg-background font-body overflow-hidden">
-      {/* ================= NAVBAR ================= */}
+      {/* NAVBAR  */}
       <div className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-brand">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
@@ -401,7 +402,7 @@ export default function Dashboard() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* ================= SIDEBAR ================= */}
+        {/*  SIDEBAR  */}
         <div
           className={`w-full sm:w-80 sm:shrink-0 bg-surface border-r border-border flex-col ${
             selectedConversation ? "hidden sm:flex" : "flex"
@@ -505,7 +506,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ================= CHAT AREA ================= */}
+        {/* CHAT AREA */}
         <div
           className={`flex-1 flex-col bg-background min-h-0 ${
             selectedConversation ? "flex" : "hidden sm:flex"
@@ -601,7 +602,7 @@ export default function Dashboard() {
                               : "bg-surface text-text-primary border border-border rounded-2xl rounded-bl-md"
                           }`}
                         >
-                          <p className="text-sm font-medium break-words">
+                          <p className="text-sm font-bold break-words">
                             {chatMessage.text}
                           </p>
                         </div>
@@ -660,7 +661,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ================= NEW CHAT MODAL ================= */}
+      {/* NEW CHAT MODAL */}
       <AnimatePresence>
         {showNewChatModal && (
           <motion.div
@@ -714,7 +715,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* ================= PROFILE MODAL ================= */}
+      {/* PROFILE MODAL */}
       <AnimatePresence>
         {showProfileModal && profileData && (
           <motion.div
@@ -857,7 +858,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* ================= DELETE CONFIRMATION MODAL ================= */}
+      {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
         {conversationToDelete && (
           <motion.div
