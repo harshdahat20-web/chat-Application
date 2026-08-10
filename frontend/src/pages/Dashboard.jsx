@@ -12,6 +12,7 @@ import {
   X,
   Trash2,
   Smile,
+  ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -24,14 +25,14 @@ const SOCKET_URL =
   "http://localhost:3000";
 
 const AVATAR_OPTIONS = [
-  "/avatars/avatar1.png",
-  "/avatars/avatar2.png",
-  "/avatars/avatar3.png",
-  "/avatars/avatar4.png",
-  "/avatars/avatar5.png",
-  "/avatars/avatar6.png",
-  "/avatars/avatar7.png",
-  "/avatars/avatar8.png",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Aiden",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Riya",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Kabir",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Meera",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Rohan",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Simran",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Vikram",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Ananya",
 ];
 
 export default function Dashboard() {
@@ -63,6 +64,15 @@ export default function Dashboard() {
   const storedUser = JSON.parse(localStorage.getItem("user")) || {};
   const currentUserId = String(storedUser._id || storedUser.id || "");
 
+  const refreshConversations = async () => {
+    try {
+      const response = await api.get("/conversation");
+      setConversations(response.data.data);
+    } catch (error) {
+      console.error("Error refreshing conversations:", error);
+    }
+  };
+
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -71,22 +81,9 @@ export default function Dashboard() {
       withCredentials: true,
     });
 
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-    });
-
     socketRef.current = socket;
 
     socket.on("onlineUsers", (userIds) => {
-      console.log("Online users received:", userIds);
       setOnlineUserIds(userIds.map(String));
     });
 
@@ -122,15 +119,6 @@ export default function Dashboard() {
 
     return () => socket.disconnect();
   }, [currentUserId]);
-
-  const refreshConversations = async () => {
-    try {
-      const response = await api.get("/conversation");
-      setConversations(response.data.data);
-    } catch (error) {
-      console.error("Error refreshing conversations:", error);
-    }
-  };
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -361,19 +349,32 @@ export default function Dashboard() {
     navigate("/login");
   };
 
+  // Group conversations alphabetically (A-Z, like the reference contacts list)
+  const groupedConversations = filteredConversations.reduce(
+    (groups, conversation) => {
+      const partner = getConversationPartner(conversation);
+      if (!partner) return groups;
+      const letter = partner.name?.[0]?.toUpperCase() || "#";
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(conversation);
+      return groups;
+    },
+    {},
+  );
+
   return (
-    <div className="h-screen flex flex-col bg-background font-body">
+    <div className="h-dvh flex flex-col bg-background font-body overflow-hidden">
       {/* ================= NAVBAR ================= */}
-      <div className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-surface">
+      <div className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-brand">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
             <MessageCircle
               className="w-5 h-5 text-text-onBrand"
               fill="currentColor"
               strokeWidth={0}
             />
           </div>
-          <span className="text-lg font-heading font-bold text-brand hidden sm:inline">
+          <span className="text-lg font-heading font-bold text-text-onBrand hidden sm:inline">
             Convo
           </span>
         </div>
@@ -384,14 +385,14 @@ export default function Dashboard() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             {renderAvatar(profileData?.profilePic, "w-9 h-9")}
-            <span className="text-sm font-medium text-text-primary hidden sm:inline">
+            <span className="text-sm font-medium text-text-onBrand hidden sm:inline">
               {storedUser.name || "User"}
             </span>
           </button>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-error border border-border rounded-full px-3 py-1.5 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-text-onBrand/90 hover:text-text-onBrand border border-white/25 rounded-full px-3 py-1.5 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Logout</span>
@@ -406,7 +407,7 @@ export default function Dashboard() {
             selectedConversation ? "hidden sm:flex" : "flex"
           }`}
         >
-          <div className="p-4 space-y-3 border-b border-border">
+          <div className="p-4 space-y-3 border-b border-border shrink-0">
             <button
               onClick={openNewChatModal}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-text-onBrand text-sm font-semibold hover:bg-brand-dark transition-colors duration-200"
@@ -419,7 +420,7 @@ export default function Dashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input
                 type="text"
-                placeholder="Search chats..."
+                placeholder="Search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
@@ -427,7 +428,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 overflow-y-auto">
             {isLoadingConversations ? (
               <p className="text-center text-sm text-text-secondary mt-6">
                 Loading...
@@ -445,68 +446,68 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              filteredConversations.map((conversation) => {
-                const partner = getConversationPartner(conversation);
-                if (!partner) return null;
-                const isPartnerOnline = onlineUserIds.includes(
-                  String(partner._id),
-                );
+              Object.keys(groupedConversations)
+                .sort()
+                .map((letter) => (
+                  <div key={letter}>
+                    <p className="px-4 pt-3 pb-1 text-xs font-semibold text-brand">
+                      {letter}
+                    </p>
+                    <div className="px-2 space-y-1">
+                      {groupedConversations[letter].map((conversation) => {
+                        const partner = getConversationPartner(conversation);
+                        const isPartnerOnline = onlineUserIds.includes(
+                          String(partner._id),
+                        );
 
-                return (
-                  <button
-                    key={conversation._id}
-                    onClick={() => openConversation(conversation)}
-                    className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150 ${
-                      selectedConversation?._id === conversation._id
-                        ? "bg-brand-light"
-                        : "hover:bg-background"
-                    }`}
-                  >
-                    <div className="relative shrink-0">
-                      {renderAvatar(partner.profilePic, "w-11 h-11")}
-                      {isPartnerOnline && (
-                        <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
-                      )}
+                        return (
+                          <button
+                            key={conversation._id}
+                            onClick={() => openConversation(conversation)}
+                            className={`group w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition-colors duration-150 ${
+                              selectedConversation?._id === conversation._id
+                                ? "bg-brand-light"
+                                : "hover:bg-background"
+                            }`}
+                          >
+                            <div className="relative shrink-0">
+                              {renderAvatar(partner.profilePic, "w-11 h-11")}
+                              {isPartnerOnline && (
+                                <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-sm font-semibold text-text-primary truncate">
+                                {partner.name}
+                              </p>
+                              <p className="text-xs text-text-secondary truncate mt-0.5">
+                                {conversation.lastMessage?.text ||
+                                  "Start a conversation"}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={(e) =>
+                                promptDeleteConversation(conversation, e)
+                              }
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </button>
+                        );
+                      })}
                     </div>
-
-                    <div className="flex-1 min-w-0 text-left">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-text-primary truncate">
-                          {partner.name}
-                        </p>
-                        {conversation.updatedAt && (
-                          <span className="text-xs text-text-secondary shrink-0 ml-2">
-                            {new Date(
-                              conversation.updatedAt,
-                            ).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-text-secondary truncate mt-0.5">
-                        {conversation.lastMessage?.text ||
-                          "Start a conversation"}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={(e) => promptDeleteConversation(conversation, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </button>
-                );
-              })
+                  </div>
+                ))
             )}
           </div>
         </div>
 
         {/* ================= CHAT AREA ================= */}
         <div
-          className={`flex-1 flex-col bg-background ${
+          className={`flex-1 flex-col bg-background min-h-0 ${
             selectedConversation ? "flex" : "hidden sm:flex"
           }`}
         >
@@ -544,7 +545,7 @@ export default function Dashboard() {
                           <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
                         )}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-semibold text-text-primary truncate">
                           {partner?.name}
                         </p>
@@ -552,13 +553,14 @@ export default function Dashboard() {
                           {isPartnerOnline ? "Online" : "Offline"}
                         </p>
                       </div>
+                      <ChevronRight className="w-5 h-5 text-text-secondary shrink-0" />
                     </>
                   );
                 })()}
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-3">
+              <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-5 py-4 space-y-3">
                 {isLoadingMessages ? (
                   <p className="text-center text-sm text-text-secondary">
                     Loading messages...
@@ -593,29 +595,14 @@ export default function Dashboard() {
                         )}
 
                         <div
-                          className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 rounded-2xl ${
+                          className={`relative max-w-[75%] sm:max-w-xs px-4 py-2.5 ${
                             isCurrentUserMessage
-                              ? "bg-brand text-text-onBrand rounded-br-sm"
-                              : "bg-surface text-text-primary border border-border rounded-bl-sm"
+                              ? "bg-brand text-text-onBrand rounded-2xl rounded-br-md"
+                              : "bg-surface text-text-primary border border-border rounded-2xl rounded-bl-md"
                           }`}
                         >
                           <p className="text-sm font-medium break-words">
                             {chatMessage.text}
-                          </p>
-                          <p
-                            className={`text-[10px] mt-1 text-right ${
-                              isCurrentUserMessage
-                                ? "text-text-onBrand/70"
-                                : "text-text-secondary"
-                            }`}
-                          >
-                            {new Date(chatMessage.createdAt).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}
                           </p>
                         </div>
                       </div>
@@ -628,7 +615,10 @@ export default function Dashboard() {
               {/* Message input */}
               <form
                 onSubmit={handleSendMessage}
-                className="relative p-3 sm:p-4 border-t border-border bg-surface flex items-center gap-2 sm:gap-3"
+                className="relative shrink-0 p-3 sm:p-4 border-t border-border bg-surface flex items-center gap-2 sm:gap-3"
+                style={{
+                  paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+                }}
               >
                 {showEmojiPicker && (
                   <div className="absolute bottom-full right-4 sm:right-5 mb-2 z-20">
@@ -651,7 +641,7 @@ export default function Dashboard() {
 
                 <input
                   type="text"
-                  placeholder="Type a message..."
+                  placeholder="Type your message..."
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
                   className="flex-1 px-4 py-2 bg-background border border-border rounded-full text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand transition-all duration-200"
@@ -687,9 +677,9 @@ export default function Dashboard() {
               onClick={(event) => event.stopPropagation()}
               className="bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm max-h-[75vh] overflow-hidden flex flex-col"
             >
-              <div className="p-4 border-b border-border flex items-center justify-between">
+              <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
                 <h3 className="font-heading font-semibold text-text-primary">
-                  Start a new chat
+                  Contacts
                 </h3>
                 <button
                   onClick={() => setShowNewChatModal(false)}
@@ -742,11 +732,11 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
               onClick={(event) => event.stopPropagation()}
-              className="bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md overflow-hidden"
+              className="bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md overflow-hidden max-h-[85dvh] overflow-y-auto"
             >
               <div className="p-4 border-b border-border flex items-center justify-between">
                 <h3 className="font-heading font-semibold text-text-primary">
-                  My Profile
+                  {isEditingProfile ? "Edit Profile" : "My Profile"}
                 </h3>
                 <button
                   onClick={() => {
