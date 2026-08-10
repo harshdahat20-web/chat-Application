@@ -143,7 +143,7 @@ export default function Register() {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-brand text-text-onBrand font-heading font-semibold text-sm hover:bg-brand-dark transition-colors duration-200 mt-2 disabled:opacity-60"
             >
-              {loading ? "Creating account..." : "Next"}
+              {loading ? "Creating account..." : "Register"}
             </motion.button>
           </form>
 

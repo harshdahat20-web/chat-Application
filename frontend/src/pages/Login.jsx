@@ -134,7 +134,7 @@ export default function Login() {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-brand text-text-onBrand font-heading font-semibold text-sm hover:bg-brand-dark transition-colors duration-200 mt-2 disabled:opacity-60"
             >
-              {loading ? "Logging in..." : "Next"}
+              {loading ? "Logging in..." : "Login"}
             </motion.button>
           </form>
 
