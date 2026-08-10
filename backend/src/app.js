@@ -12,6 +12,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 
+// Health check route (for cron-job.org keep-alive ping)
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Server is running" });
+});
+
 // All API here
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
