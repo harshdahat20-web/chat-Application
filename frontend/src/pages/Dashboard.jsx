@@ -71,6 +71,14 @@ export default function Dashboard() {
       withCredentials: true,
     });
 
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err.message);
+    });
+
     socketRef.current = socket;
 
     socket.on("onlineUsers", (userIds) => {
