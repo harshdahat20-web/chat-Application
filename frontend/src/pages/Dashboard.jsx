@@ -74,12 +74,13 @@ export default function Dashboard() {
     socket.on("connect", () => {
       console.log("Socket connected:", socket.id);
     });
-    // disconnect
+
     socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected. Reason:", reason);
+      console.log("Socket disconnected:", reason);
     });
-    socket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err.message);
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message);
     });
 
     socketRef.current = socket;
