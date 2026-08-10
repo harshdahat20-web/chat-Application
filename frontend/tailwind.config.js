@@ -20,8 +20,8 @@ export default {
         error: "#DC2626",
       },
       fontFamily: {
-        heading: ["Space Grotesk", "sans-serif"],
-        body: ["Inter", "sans-serif"],
+        heading: ["Fredoka", "sans-serif"],
+        body: ["Nunito", "sans-serif"],
       },
     },
   },
