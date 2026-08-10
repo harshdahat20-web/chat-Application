@@ -82,6 +82,7 @@ export default function Dashboard() {
     socketRef.current = socket;
 
     socket.on("onlineUsers", (userIds) => {
+      console.log("Online users received:", userIds);
       setOnlineUserIds(userIds.map(String));
     });
 
