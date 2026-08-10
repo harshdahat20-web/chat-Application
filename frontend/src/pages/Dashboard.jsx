@@ -25,14 +25,16 @@ const SOCKET_URL =
   "http://localhost:3000";
 
 const AVATAR_OPTIONS = [
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Aiden",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Riya",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Kabir",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Meera",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Rohan",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Simran",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Vikram",
-  "https://api.dicebear.com/7.x/lorelei/svg?seed=Ananya",
+  "/avatars/avatar1.png",
+  "/avatars/avatar2.png",
+  "/avatars/avatar3.png",
+  "/avatars/avatar4.png",
+  "/avatars/avatar5.png",
+  "/avatars/avatar6.png",
+  "/avatars/avatar7.png",
+  "/avatars/avatar8.png",
+  "/avatars/avatar9.png",
+  "/avatars/avatar10.png",
 ];
 
 export default function Dashboard() {
