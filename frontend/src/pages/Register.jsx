@@ -26,7 +26,7 @@ export default function Register() {
       if (data.data) {
         login(data.data);
       }
-      navigate("/home"); // apna actual home/dashboard route daal dena
+      navigate("/home");
     } catch (err) {
       setError(
         err.response?.data?.message || "Registration failed. Please try again.",
@@ -51,19 +51,19 @@ export default function Register() {
           transition={{ delay: 0.1, duration: 0.4 }}
           className="flex flex-col items-center mb-6"
         >
-          <div className="flex items-center gap-2 mb-1">
-            <div className="bg-brand p-2 rounded-xl">
-              <MessageCircle
-                className="w-5 h-5 text-text-onBrand"
-                fill="currentColor"
-                strokeWidth={0}
-              />
-            </div>
-            <span className="text-2xl font-heading font-bold text-text-primary">
-              Convo
-            </span>
+          <div className="bg-brand w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-brand-light">
+            <MessageCircle
+              className="w-8 h-8 text-text-onBrand"
+              fill="currentColor"
+              strokeWidth={0}
+            />
           </div>
-          <p className="text-xs text-text-secondary">Connect. Chat. Conquer.</p>
+          <span className="text-2xl font-heading font-bold text-brand">
+            Convo
+          </span>
+          <p className="text-xs text-text-secondary mt-1">
+            Connect. Chat. Share.
+          </p>
         </motion.div>
 
         {/* Heading */}
@@ -73,11 +73,11 @@ export default function Register() {
           transition={{ delay: 0.2, duration: 0.4 }}
           className="text-center mb-7"
         >
-          <h1 className="text-xl font-heading font-semibold text-text-primary flex items-center justify-center gap-2">
+          <h1 className="text-xl font-heading font-bold text-text-primary">
             Create Account
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Join Convo and start chatting with your friends
+            Register to start chatting with friends
           </p>
         </motion.div>
 
@@ -92,7 +92,7 @@ export default function Register() {
               <input
                 type="text"
                 name="name"
-                placeholder="Enter your name"
+                placeholder="Enter your full name"
                 value={form.name}
                 onChange={handleChange}
                 required
@@ -161,7 +161,7 @@ export default function Register() {
             disabled={loading}
             className="w-full py-3 rounded-xl bg-brand text-text-onBrand font-heading font-semibold text-sm shadow-lg shadow-brand-light hover:bg-brand-dark transition-colors duration-200 mt-2 disabled:opacity-60"
           >
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? "Creating account..." : "Register"}
           </motion.button>
         </form>
 

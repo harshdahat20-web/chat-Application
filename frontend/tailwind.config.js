@@ -4,18 +4,17 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#4A5A3A",
-          dark: "#3A4830",
-          light: "#DCE3D0",
+          DEFAULT: "#6C5DD3",
+          dark: "#5B4BC4",
+          light: "#EDEBFB",
         },
-        background: "#F5F0E4",
+        background: "#F5F4FA",
         surface: "#FFFFFF",
-        border: "#E8DFC8",
-        accent: "#F5C518",
+        border: "#E5E3F5",
 
         text: {
-          primary: "#1C1C1A",
-          secondary: "#6B6B60",
+          primary: "#1E1B39",
+          secondary: "#8B8AA3",
           onBrand: "#FFFFFF",
         },
 
@@ -23,8 +22,8 @@ export default {
         error: "#DC2626",
       },
       fontFamily: {
-        heading: ["Fredoka", "sans-serif"],
-        body: ["Nunito", "sans-serif"],
+        heading: ["Poppins", "sans-serif"],
+        body: ["Inter", "sans-serif"],
       },
     },
   },

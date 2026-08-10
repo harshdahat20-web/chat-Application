@@ -9,7 +9,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export default function Login() {
       if (data.data) {
         login(data.data);
       }
-      navigate("/home"); // apna actual home/dashboard route daal dena
+      navigate("/home");
     } catch (err) {
       setError(
         err.response?.data?.message || "Login failed. Please try again.",
@@ -52,19 +52,19 @@ export default function Login() {
           transition={{ delay: 0.1, duration: 0.4 }}
           className="flex flex-col items-center mb-6"
         >
-          <div className="flex items-center gap-2 mb-1">
-            <div className="bg-brand p-2 rounded-xl">
-              <MessageCircle
-                className="w-5 h-5 text-text-onBrand"
-                fill="currentColor"
-                strokeWidth={0}
-              />
-            </div>
-            <span className="text-2xl font-heading font-bold text-text-primary">
-              Convo
-            </span>
+          <div className="bg-brand w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-brand-light">
+            <MessageCircle
+              className="w-8 h-8 text-text-onBrand"
+              fill="currentColor"
+              strokeWidth={0}
+            />
           </div>
-          <p className="text-xs text-text-secondary">Connect. Chat. Conquer.</p>
+          <span className="text-2xl font-heading font-bold text-brand">
+            Convo
+          </span>
+          <p className="text-xs text-text-secondary mt-1">
+            Connect. Chat. Share.
+          </p>
         </motion.div>
 
         {/* Heading */}
@@ -74,11 +74,11 @@ export default function Login() {
           transition={{ delay: 0.2, duration: 0.4 }}
           className="text-center mb-7"
         >
-          <h1 className="text-xl font-heading font-semibold text-text-primary flex items-center justify-center gap-2">
+          <h1 className="text-xl font-heading font-bold text-text-primary">
             Welcome Back
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Login to continue chatting with your friends
+            Login to continue your conversations
           </p>
         </motion.div>
 
@@ -147,7 +147,7 @@ export default function Login() {
               href="#"
               className="text-sm text-brand hover:text-brand-dark font-medium"
             >
-              Forgot password?
+              Forgot Password?
             </a>
           </div>
 

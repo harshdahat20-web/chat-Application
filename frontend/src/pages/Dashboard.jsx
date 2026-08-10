@@ -13,10 +13,10 @@ import {
   Trash2,
   Smile,
 } from "lucide-react";
-import EmojiPicker from "emoji-picker-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { io } from "socket.io-client";
+import EmojiPicker from "emoji-picker-react";
 import { useAuth } from "../context/AuthContext";
 
 const SOCKET_URL =
@@ -24,21 +24,25 @@ const SOCKET_URL =
   "http://localhost:3000";
 
 const AVATAR_OPTIONS = [
-  "/avatars/avatar1.png",
-  "/avatars/avatar2.png",
-  "/avatars/avatar3.png",
-  "/avatars/avatar4.png",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Aiden",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Riya",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Kabir",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Meera",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Rohan",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Simran",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Vikram",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Ananya",
 ];
+
 export default function Dashboard() {
   const navigate = useNavigate();
-
   const { logout } = useAuth();
+
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageText, setMessageText] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -51,21 +55,19 @@ export default function Dashboard() {
   const [editBio, setEditBio] = useState("");
   const [editProfilePic, setEditProfilePic] = useState("");
   const [conversationToDelete, setConversationToDelete] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const storedUser = JSON.parse(localStorage.getItem("user")) || {};
-
   const currentUserId = String(storedUser._id || storedUser.id || "");
 
   useEffect(() => {
     if (!currentUserId) return;
 
     const socket = io(SOCKET_URL, {
-      auth: {
-        userId: currentUserId,
-      },
+      auth: { userId: currentUserId },
       withCredentials: true,
     });
 
@@ -76,49 +78,34 @@ export default function Dashboard() {
     });
 
     socket.on("newMessage", (newMessage) => {
-      setMessages((previousMessages) => {
-        const messageAlreadyExists = previousMessages.some(
-          (existingMessage) => existingMessage._id === newMessage._id,
-        );
-
-        if (messageAlreadyExists) {
-          return previousMessages;
-        }
-
-        return [...previousMessages, newMessage];
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === newMessage._id)) return prev;
+        return [...prev, newMessage];
       });
 
-      setConversations((previousConversations) =>
-        previousConversations
-          .map((conversation) =>
-            conversation._id === newMessage.conversation
+      setConversations((prev) =>
+        prev
+          .map((c) =>
+            c._id === newMessage.conversation
               ? {
-                  ...conversation,
+                  ...c,
                   lastMessage: newMessage,
                   updatedAt: newMessage.createdAt,
                 }
-              : conversation,
+              : c,
           )
-          .sort(
-            (firstConversation, secondConversation) =>
-              new Date(secondConversation.updatedAt) -
-              new Date(firstConversation.updatedAt),
-          ),
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
       );
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => socket.disconnect();
   }, [currentUserId]);
 
   useEffect(() => {
     const fetchConversations = async () => {
       try {
         setIsLoadingConversations(true);
-
         const response = await api.get("/conversation");
-
         setConversations(response.data.data);
       } catch (error) {
         console.error("Error fetching conversations:", error);
@@ -144,9 +131,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
@@ -164,13 +149,24 @@ export default function Dashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
-  const handleDeleteMessage = async (messageId) => {
-    try {
-      await api.delete(`/message/${messageId}`);
-      setMessages((prev) => prev.filter((m) => m._id !== messageId));
-    } catch (error) {
-      console.error("Error deleting message:", error);
+
+  const renderAvatar = (profilePicUrl, sizeClass = "w-10 h-10") => {
+    if (profilePicUrl) {
+      return (
+        <img
+          src={profilePicUrl}
+          alt="avatar"
+          className={`${sizeClass} rounded-full bg-brand-light object-cover shrink-0`}
+        />
+      );
     }
+    return (
+      <div
+        className={`${sizeClass} rounded-full bg-brand-light flex items-center justify-center shrink-0`}
+      >
+        <User className="w-1/2 h-1/2 text-brand" />
+      </div>
+    );
   };
 
   const getConversationPartner = (conversation) => {
@@ -179,31 +175,9 @@ export default function Dashboard() {
     );
   };
 
-  const renderAvatar = (profilePicUrl, sizeClass = "w-10 h-10") => {
-    if (profilePicUrl) {
-      return (
-        <img
-          src={profilePicUrl}
-          alt="avatar"
-          className={`${sizeClass} rounded-full bg-brand-light object-cover`}
-        />
-      );
-    }
-    return (
-      <div
-        className={`${sizeClass} rounded-full bg-brand-light flex items-center justify-center`}
-      >
-        <User className="w-1/2 h-1/2 text-brand" />
-      </div>
-    );
-  };
-
   const filteredConversations = conversations.filter((conversation) => {
-    const conversationPartner = getConversationPartner(conversation);
-
-    return conversationPartner?.name
-      ?.toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    const partner = getConversationPartner(conversation);
+    return partner?.name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const openConversation = async (conversation) => {
@@ -213,7 +187,6 @@ export default function Dashboard() {
 
     try {
       const response = await api.get(`/message/${conversation._id}`);
-
       setMessages(response.data.data);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -224,10 +197,7 @@ export default function Dashboard() {
 
   const handleSendMessage = async (event) => {
     event.preventDefault();
-
-    if (!messageText.trim() || !selectedConversation) {
-      return;
-    }
+    if (!messageText.trim() || !selectedConversation) return;
 
     try {
       const response = await api.post("/message", {
@@ -236,25 +206,20 @@ export default function Dashboard() {
       });
 
       const sentMessage = response.data.data;
+      setMessages((prev) => [...prev, sentMessage]);
 
-      setMessages((previousMessages) => [...previousMessages, sentMessage]);
-
-      setConversations((previousConversations) =>
-        previousConversations
-          .map((conversation) =>
-            conversation._id === selectedConversation._id
+      setConversations((prev) =>
+        prev
+          .map((c) =>
+            c._id === selectedConversation._id
               ? {
-                  ...conversation,
+                  ...c,
                   lastMessage: sentMessage,
                   updatedAt: sentMessage.createdAt,
                 }
-              : conversation,
+              : c,
           )
-          .sort(
-            (firstConversation, secondConversation) =>
-              new Date(secondConversation.updatedAt) -
-              new Date(firstConversation.updatedAt),
-          ),
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
       );
 
       setMessageText("");
@@ -265,6 +230,15 @@ export default function Dashboard() {
 
   const handleEmojiClick = (emojiData) => {
     setMessageText((prev) => prev + emojiData.emoji);
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await api.delete(`/message/${messageId}`);
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
   };
 
   const promptDeleteConversation = (conversation, event) => {
@@ -294,11 +268,27 @@ export default function Dashboard() {
   const openNewChatModal = async () => {
     try {
       const response = await api.get("/user/all");
-
       setAvailableUsers(response.data.data);
       setShowNewChatModal(true);
     } catch (error) {
       console.error("Error fetching users:", error);
+    }
+  };
+
+  const startConversation = async (receiverId) => {
+    try {
+      const response = await api.post("/conversation", { receiverId });
+      const newConversation = response.data.data;
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c._id === newConversation._id);
+        return exists ? prev : [newConversation, ...prev];
+      });
+
+      setShowNewChatModal(false);
+      openConversation(newConversation);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
     }
   };
 
@@ -314,6 +304,7 @@ export default function Dashboard() {
       console.error("Error fetching profile:", error);
     }
   };
+
   const handleSaveProfile = async () => {
     try {
       const response = await api.put("/user/profile", {
@@ -330,33 +321,7 @@ export default function Dashboard() {
       const mergedUser = { ...currentStoredUser, name: updatedData.name };
       localStorage.setItem("user", JSON.stringify(mergedUser));
     } catch (error) {
-      console.error("Error updating profile:", error.response?.data || error);
-      alert(error.response?.data?.message || "Failed to update profile");
-    }
-  };
-  const startConversation = async (receiverId) => {
-    try {
-      const response = await api.post("/conversation", {
-        receiverId,
-      });
-
-      const newConversation = response.data.data;
-
-      setConversations((previousConversations) => {
-        const conversationAlreadyExists = previousConversations.some(
-          (conversation) => conversation._id === newConversation._id,
-        );
-
-        return conversationAlreadyExists
-          ? previousConversations
-          : [newConversation, ...previousConversations];
-      });
-
-      setShowNewChatModal(false);
-
-      openConversation(newConversation);
-    } catch (error) {
-      console.error("Error creating conversation:", error);
+      console.error("Error updating profile:", error);
     }
   };
 
@@ -372,91 +337,72 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Desktop-only top bar — mobile uses the greeting header inside the list panel instead */}
-      <div className="hidden sm:flex h-16 shrink-0 px-6 items-center justify-between border-b border-border bg-surface">
+    <div className="h-screen flex flex-col bg-background font-body">
+      {/* ================= NAVBAR ================= */}
+      <div className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-surface">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-brand-light flex items-center justify-center">
-            <MessageCircle className="w-5 h-5 text-brand" />
+          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center">
+            <MessageCircle
+              className="w-5 h-5 text-text-onBrand"
+              fill="currentColor"
+              strokeWidth={0}
+            />
           </div>
-          <span className="text-lg font-heading font-bold text-text-primary">
+          <span className="text-lg font-heading font-bold text-brand hidden sm:inline">
             Convo
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
             onClick={openProfileModal}
-            className="hidden sm:flex items-center gap-2 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            {renderAvatar(profileData?.profilePic, "w-12 h-12")}
-            <span className="text-sm font-medium text-text-primary">
+            {renderAvatar(profileData?.profilePic, "w-9 h-9")}
+            <span className="text-sm font-medium text-text-primary hidden sm:inline">
               {storedUser.name || "User"}
             </span>
           </button>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-error transition-colors"
+            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-error border border-border rounded-full px-3 py-1.5 transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* ================= CONVERSATION LIST ================= */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* ================= SIDEBAR ================= */}
         <div
-          className={`relative w-full sm:w-80 sm:shrink-0 bg-surface sm:border-r border-border flex-col ${
+          className={`w-full sm:w-80 sm:shrink-0 bg-surface border-r border-border flex-col ${
             selectedConversation ? "hidden sm:flex" : "flex"
           }`}
         >
-          {/* Greeting header (mobile) */}
-          <div className="px-5 pt-6 pb-4 sm:hidden flex items-center justify-between">
+          <div className="p-4 space-y-3 border-b border-border">
             <button
-              onClick={openProfileModal}
-              className="flex items-center gap-3 text-left"
+              onClick={openNewChatModal}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-text-onBrand text-sm font-semibold hover:bg-brand-dark transition-colors duration-200"
             >
-              {renderAvatar(profileData?.profilePic, "w-11 h-11")}
-              <div>
-                <p className="text-sm text-text-secondary">Hello,</p>
-                <h1 className="text-2xl font-heading font-bold text-text-primary">
-                  {storedUser.name || "User"}
-                </h1>
-              </div>
+              <Plus className="w-4 h-4" />
+              New Chat
             </button>
-            <button
-              onClick={handleLogout}
-              className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center shrink-0"
-            >
-              <LogOut className="w-4 h-4 text-brand" />
-            </button>
-          </div>
 
-          {/* Section title (desktop) */}
-          <div className="hidden sm:block px-4 pt-4">
-            <h2 className="text-sm font-heading font-semibold text-text-primary">
-              Conversations
-            </h2>
-          </div>
-
-          {/* Search */}
-          <div className="px-5 sm:px-4 pt-1 pb-3">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input
                 type="text"
-                placeholder="Search conversations..."
+                placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-full text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
+                className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
               />
             </div>
           </div>
 
-          {/* List */}
-          <div className="flex-1 overflow-y-auto px-2 pb-24 sm:pb-2">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {isLoadingConversations ? (
               <p className="text-center text-sm text-text-secondary mt-6">
                 Loading...
@@ -475,41 +421,33 @@ export default function Dashboard() {
               </div>
             ) : (
               filteredConversations.map((conversation) => {
-                const conversationPartner =
-                  getConversationPartner(conversation);
-
-                if (!conversationPartner) {
-                  return null;
-                }
-
+                const partner = getConversationPartner(conversation);
+                if (!partner) return null;
                 const isPartnerOnline = onlineUserIds.includes(
-                  String(conversationPartner._id),
+                  String(partner._id),
                 );
 
                 return (
                   <button
                     key={conversation._id}
                     onClick={() => openConversation(conversation)}
-                    className={`group w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-colors duration-150 ${
+                    className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150 ${
                       selectedConversation?._id === conversation._id
                         ? "bg-brand-light"
                         : "hover:bg-background"
                     }`}
                   >
                     <div className="relative shrink-0">
-                      {renderAvatar(
-                        conversationPartner.profilePic,
-                        "w-12 h-12",
-                      )}
+                      {renderAvatar(partner.profilePic, "w-11 h-11")}
                       {isPartnerOnline && (
-                        <Circle className="absolute bottom-0 right-0 w-3.5 h-3.5 fill-green-500 text-green-500 ring-2 ring-surface rounded-full" />
+                        <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-text-primary truncate">
-                          {conversationPartner.name}
+                          {partner.name}
                         </p>
                         {conversation.updatedAt && (
                           <span className="text-xs text-text-secondary shrink-0 ml-2">
@@ -539,19 +477,11 @@ export default function Dashboard() {
               })
             )}
           </div>
-
-          {/* Floating "New Chat" action button */}
-          <button
-            onClick={openNewChatModal}
-            className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-brand text-text-onBrand shadow-lg shadow-brand-light flex items-center justify-center hover:bg-brand-dark transition-colors duration-200"
-          >
-            <Plus className="w-6 h-6" />
-          </button>
         </div>
 
         {/* ================= CHAT AREA ================= */}
         <div
-          className={`flex-1 flex-col bg-background sm:p-4 ${
+          className={`flex-1 flex-col bg-background ${
             selectedConversation ? "flex" : "hidden sm:flex"
           }`}
         >
@@ -565,114 +495,115 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col h-full sm:rounded-3xl sm:overflow-hidden sm:shadow-xl">
-              {/* Header + messages panel */}
-              <div className="flex flex-col flex-1 bg-gradient-to-b from-brand to-brand-dark rounded-b-[2rem] sm:rounded-b-none overflow-hidden">
-                {/* Chat header */}
-                <div className="shrink-0 px-4 sm:px-5 pt-5 pb-4 flex items-center gap-3">
-                  <button
-                    onClick={() => setSelectedConversation(null)}
-                    className="sm:hidden text-text-onBrand/90 hover:text-text-onBrand"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
+            <>
+              {/* Chat header */}
+              <div className="h-16 shrink-0 px-4 sm:px-5 flex items-center gap-3 border-b border-border bg-surface">
+                <button
+                  onClick={() => setSelectedConversation(null)}
+                  className="sm:hidden text-text-secondary hover:text-text-primary"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
 
-                  {(() => {
-                    const conversationPartner =
-                      getConversationPartner(selectedConversation);
+                {(() => {
+                  const partner = getConversationPartner(selectedConversation);
+                  const isPartnerOnline = onlineUserIds.includes(
+                    String(partner?._id),
+                  );
 
-                    const isPartnerOnline = onlineUserIds.includes(
-                      String(conversationPartner?._id),
-                    );
-
-                    return (
-                      <>
-                        <div className="relative shrink-0">
-                          {renderAvatar(
-                            conversationPartner?.profilePic,
-                            "w-11 h-11",
-                          )}
-                          {isPartnerOnline && (
-                            <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-green-400 text-green-400 ring-2 ring-brand rounded-full" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="font-medium text-text-onBrand truncate">
-                            {conversationPartner?.name}
-                          </p>
-                          <p className="text-xs text-text-onBrand/70">
-                            {isPartnerOnline ? "Online" : "Offline"}
-                          </p>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto px-4 sm:px-5 pb-6 space-y-3">
-                  {isLoadingMessages ? (
-                    <p className="text-center text-sm text-text-onBrand/70">
-                      Loading messages...
-                    </p>
-                  ) : messages.length === 0 ? (
-                    <div className="h-full flex items-center justify-center">
-                      <p className="text-sm text-text-onBrand/70">
-                        No messages yet. Say hello...
-                      </p>
-                    </div>
-                  ) : (
-                    messages.map((chatMessage) => {
-                      const senderId = String(
-                        chatMessage.sender?._id || chatMessage.sender,
-                      );
-
-                      const isCurrentUserMessage = senderId === currentUserId;
-
-                      return (
-                        <div
-                          key={chatMessage._id}
-                          className={`group flex items-center gap-1.5 ${
-                            isCurrentUserMessage
-                              ? "justify-end"
-                              : "justify-start"
-                          }`}
-                        >
-                          {isCurrentUserMessage && (
-                            <button
-                              onClick={() =>
-                                handleDeleteMessage(chatMessage._id)
-                              }
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-error/10 text-text-onBrand/60 hover:text-error transition-all duration-150"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-
-                          <div
-                            className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 rounded-2xl ${
-                              isCurrentUserMessage
-                                ? "bg-surface text-text-primary shadow-sm rounded-br-sm"
-                                : "bg-white/15 text-text-onBrand backdrop-blur-sm rounded-bl-sm"
-                            }`}
-                          >
-                            <p className="text-sm font-bold break-words">
-                              {chatMessage.text}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
+                  return (
+                    <>
+                      <div className="relative shrink-0">
+                        {renderAvatar(partner?.profilePic, "w-10 h-10")}
+                        {isPartnerOnline && (
+                          <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-text-primary truncate">
+                          {partner?.name}
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          {isPartnerOnline ? "Online" : "Offline"}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
-              {/* Floating message input */}
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-3">
+                {isLoadingMessages ? (
+                  <p className="text-center text-sm text-text-secondary">
+                    Loading messages...
+                  </p>
+                ) : messages.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-sm text-text-secondary">
+                      No messages yet
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((chatMessage) => {
+                    const senderId = String(
+                      chatMessage.sender?._id || chatMessage.sender,
+                    );
+                    const isCurrentUserMessage = senderId === currentUserId;
+
+                    return (
+                      <div
+                        key={chatMessage._id}
+                        className={`group flex items-end gap-1.5 ${
+                          isCurrentUserMessage ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        {isCurrentUserMessage && (
+                          <button
+                            onClick={() => handleDeleteMessage(chatMessage._id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 mb-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        <div
+                          className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 rounded-2xl ${
+                            isCurrentUserMessage
+                              ? "bg-brand text-text-onBrand rounded-br-sm"
+                              : "bg-surface text-text-primary border border-border rounded-bl-sm"
+                          }`}
+                        >
+                          <p className="text-sm font-medium break-words">
+                            {chatMessage.text}
+                          </p>
+                          <p
+                            className={`text-[10px] mt-1 text-right ${
+                              isCurrentUserMessage
+                                ? "text-text-onBrand/70"
+                                : "text-text-secondary"
+                            }`}
+                          >
+                            {new Date(chatMessage.createdAt).toLocaleTimeString(
+                              [],
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message input */}
               <form
                 onSubmit={handleSendMessage}
-                className="shrink-0 px-4 sm:px-5 -mt-6 relative z-10"
+                className="relative p-3 sm:p-4 border-t border-border bg-surface flex items-center gap-2 sm:gap-3"
               >
                 {showEmojiPicker && (
                   <div className="absolute bottom-full right-4 sm:right-5 mb-2 z-20">
@@ -684,34 +615,32 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 bg-surface rounded-full shadow-lg px-2 py-2">
-                  <button
-                    type="button"
-                    data-emoji-trigger
-                    onClick={() => setShowEmojiPicker((prev) => !prev)}
-                    className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:text-brand hover:bg-brand-light transition-colors duration-200"
-                  >
-                    <Smile className="w-5 h-5" />
-                  </button>
+                <button
+                  type="button"
+                  data-emoji-trigger
+                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                  className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:text-brand hover:bg-brand-light transition-colors duration-200"
+                >
+                  <Smile className="w-5 h-5" />
+                </button>
 
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    value={messageText}
-                    onChange={(event) => setMessageText(event.target.value)}
-                    className="flex-1 bg-transparent px-1 py-2 text-sm text-text-primary focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!messageText.trim()}
-                    className="w-10 h-10 shrink-0 rounded-full bg-brand text-text-onBrand flex items-center justify-center disabled:opacity-50 hover:bg-brand-dark transition-colors duration-200"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="h-4 sm:h-0" />
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={messageText}
+                  onChange={(event) => setMessageText(event.target.value)}
+                  className="flex-1 px-4 py-2 bg-background border border-border rounded-full text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand transition-all duration-200"
+                />
+
+                <button
+                  type="submit"
+                  disabled={!messageText.trim()}
+                  className="w-10 h-10 shrink-0 rounded-full bg-brand text-text-onBrand flex items-center justify-center disabled:opacity-50 hover:bg-brand-dark transition-colors duration-200"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
               </form>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -757,9 +686,7 @@ export default function Dashboard() {
                       onClick={() => startConversation(availableUser._id)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-background transition-colors text-left"
                     >
-                      <div className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center shrink-0">
-                        <User className="w-5 h-5 text-brand" />
-                      </div>
+                      {renderAvatar(availableUser.profilePic, "w-10 h-10")}
                       <p className="text-sm font-medium text-text-primary">
                         {availableUser.name}
                       </p>
@@ -773,7 +700,6 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* ================= PROFILE MODAL ================= */}
-
       <AnimatePresence>
         {showProfileModal && profileData && (
           <motion.div
@@ -808,12 +734,13 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <div className="p-6 flex flex-col items-center text-center">
+              <div className="p-8 flex flex-col items-center text-center">
                 {!isEditingProfile &&
-                  renderAvatar(profileData.profilePic, "w-50 h-50 mb-5")}
+                  renderAvatar(profileData.profilePic, "w-32 h-32 mb-5")}
+
                 {!isEditingProfile ? (
                   <>
-                    <h2 className="text-lg font-heading font-semibold text-text-primary">
+                    <h2 className="text-xl font-heading font-semibold text-text-primary">
                       {profileData.name}
                     </h2>
                     <p className="text-sm text-text-secondary mt-0.5">
@@ -916,7 +843,6 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* ================= DELETE CONFIRMATION MODAL ================= */}
-
       <AnimatePresence>
         {conversationToDelete && (
           <motion.div
