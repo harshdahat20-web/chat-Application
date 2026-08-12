@@ -77,7 +77,7 @@ Convo is a full-stack, real-time messaging application built with the MERN stack
     ├── routes/                # API route definitions
     ├── models/                # Mongoose schemas
     ├── middleware/             # Auth middleware
-    ├── utils/                 # Socket.io setup
+    ├── socket/                 # Socket.io setup
     └── server.js               # App entry point
 ```
 
