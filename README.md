@@ -91,8 +91,8 @@ Convo is a full-stack, real-time messaging application built with the MERN stack
 
 ### 1. Clone the repository
 ```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
+git clone https://github.com/harshdahat20-web/chat-Application.git
+cd chat-Application
 ```
 
 ### 2. Backend setup
