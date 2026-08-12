@@ -12,7 +12,7 @@ import {
   X,
   Trash2,
   Smile,
-  ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -20,43 +20,50 @@ import { io } from "socket.io-client";
 import EmojiPicker from "emoji-picker-react";
 import { useAuth } from "../context/AuthContext";
 
+// Base URL for the Socket.io connection, derived from the REST API URL.
 const SOCKET_URL =
   import.meta.env.VITE_API_URL?.replace("/api/v1", "") ||
   "http://localhost:3000";
 
+// Preset avatar choices shown in the profile editor.
 const AVATAR_OPTIONS = [
-  "/avatars/avatar1.png",
-  "/avatars/avatar2.png",
-  "/avatars/avatar3.png",
-  "/avatars/avatar4.png",
-  "/avatars/avatar5.png",
-  "/avatars/avatar6.png",
-  "/avatars/avatar7.png",
-  "/avatars/avatar8.png",
-  "/avatars/avatar9.png",
-  "/avatars/avatar10.png",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&top=shortHairShortFlat&backgroundColor=116857",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir&top=shortHairTheCaesar&backgroundColor=3B82F6",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan&top=shortHairShortCurly&backgroundColor=F97316",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram&top=shortHairShortWaved&backgroundColor=A855F7",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Riya&top=longHairStraight&backgroundColor=EC4899",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Meera&top=longHairCurly&backgroundColor=F59E0B",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Simran&top=longHairBun&backgroundColor=10B981",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya&top=longHairStraight2&backgroundColor=EF4444",
 ];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageText, setMessageText] = useState("");
   const [onlineUserIds, setOnlineUserIds] = useState([]);
+
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
+
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editProfilePic, setEditProfilePic] = useState("");
+
   const [conversationToDelete, setConversationToDelete] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -66,15 +73,23 @@ export default function Dashboard() {
   const storedUser = JSON.parse(localStorage.getItem("user")) || {};
   const currentUserId = String(storedUser._id || storedUser.id || "");
 
+  // ---------------------------------------------------------------------
+  // Data fetching helpers
+  // ---------------------------------------------------------------------
+
+  /** Fetches the latest conversation list from the server. */
   const refreshConversations = async () => {
     try {
       const response = await api.get("/conversation");
       setConversations(response.data.data);
     } catch (error) {
-      console.error("Error refreshing conversations:", error);
+      console.error("Failed to refresh conversations:", error);
     }
   };
 
+  // ---------------------------------------------------------------------
+  // Socket.io connection lifecycle
+  // ---------------------------------------------------------------------
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -85,43 +100,58 @@ export default function Dashboard() {
 
     socketRef.current = socket;
 
+    // Server broadcasts the list of currently connected user IDs.
     socket.on("onlineUsers", (userIds) => {
       setOnlineUserIds(userIds.map(String));
     });
 
-    socket.on("newMessage", (newMessage) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === newMessage._id)) return prev;
-        return [...prev, newMessage];
+    // Server pushes a new message in real time.
+    socket.on("newMessage", (incomingMessage) => {
+      // Append to the open conversation's message thread, if applicable.
+      setMessages((previousMessages) => {
+        const isDuplicate = previousMessages.some(
+          (existingMessage) => existingMessage._id === incomingMessage._id,
+        );
+        return isDuplicate
+          ? previousMessages
+          : [...previousMessages, incomingMessage];
       });
 
-      setConversations((prev) => {
-        const conversationExists = prev.some(
-          (c) => c._id === newMessage.conversation,
+      // Update the conversation list preview and ordering.
+      setConversations((previousConversations) => {
+        const conversationExists = previousConversations.some(
+          (conversation) => conversation._id === incomingMessage.conversation,
         );
 
         if (conversationExists) {
-          return prev
-            .map((c) =>
-              c._id === newMessage.conversation
+          return previousConversations
+            .map((conversation) =>
+              conversation._id === incomingMessage.conversation
                 ? {
-                    ...c,
-                    lastMessage: newMessage,
-                    updatedAt: newMessage.createdAt,
+                    ...conversation,
+                    lastMessage: incomingMessage,
+                    updatedAt: incomingMessage.createdAt,
                   }
-                : c,
+                : conversation,
             )
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         }
 
+        // First message of a brand-new conversation — refetch the list
+        // so it appears without requiring a manual page refresh.
         refreshConversations();
-        return prev;
+        return previousConversations;
       });
     });
 
-    return () => socket.disconnect();
+    return () => {
+      socket.disconnect();
+    };
   }, [currentUserId]);
 
+  // ---------------------------------------------------------------------
+  // Initial data loading
+  // ---------------------------------------------------------------------
   useEffect(() => {
     const loadConversations = async () => {
       setIsLoadingConversations(true);
@@ -133,30 +163,32 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const loadCurrentUserProfile = async () => {
       try {
         const response = await api.get("/user/profile");
         setProfileData(response.data.data);
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Failed to load profile:", error);
       }
     };
 
-    fetchProfile();
+    loadCurrentUserProfile();
   }, []);
 
+  // Keep the message thread scrolled to the latest message.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Close the emoji picker when the user clicks outside of it.
   useEffect(() => {
     if (!showEmojiPicker) return;
 
     const handleClickOutside = (event) => {
-      if (
-        !event.target.closest(".EmojiPickerReact") &&
-        !event.target.closest("[data-emoji-trigger]")
-      ) {
+      const clickedInsidePicker = event.target.closest(".EmojiPickerReact");
+      const clickedTrigger = event.target.closest("[data-emoji-trigger]");
+
+      if (!clickedInsidePicker && !clickedTrigger) {
         setShowEmojiPicker(false);
       }
     };
@@ -165,25 +197,32 @@ export default function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
-  const renderAvatar = (profilePicUrl, sizeClass = "w-10 h-10") => {
-    if (profilePicUrl) {
+  // ---------------------------------------------------------------------
+  // Presentation helpers
+  // ---------------------------------------------------------------------
+
+  /** Renders a user's avatar image, falling back to a generic icon. */
+  const renderAvatar = (avatarUrl, sizeClassName = "w-10 h-10") => {
+    if (avatarUrl) {
       return (
         <img
-          src={profilePicUrl}
-          alt="avatar"
-          className={`${sizeClass} rounded-full bg-brand-light object-cover shrink-0`}
+          src={avatarUrl}
+          alt="User avatar"
+          className={`${sizeClassName} rounded-full bg-brand-light object-cover shrink-0`}
         />
       );
     }
+
     return (
       <div
-        className={`${sizeClass} rounded-full bg-brand-light flex items-center justify-center shrink-0`}
+        className={`${sizeClassName} rounded-full bg-brand-light flex items-center justify-center shrink-0`}
       >
         <User className="w-1/2 h-1/2 text-brand" />
       </div>
     );
   };
 
+  /** Returns the other participant in a 1-on-1 conversation. */
   const getConversationPartner = (conversation) => {
     return conversation.participants.find(
       (participant) => String(participant._id) !== currentUserId,
@@ -195,6 +234,10 @@ export default function Dashboard() {
     return partner?.name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  // ---------------------------------------------------------------------
+  // Conversation and message actions
+  // ---------------------------------------------------------------------
+
   const openConversation = async (conversation) => {
     setSelectedConversation(conversation);
     setMessages([]);
@@ -204,7 +247,7 @@ export default function Dashboard() {
       const response = await api.get(`/message/${conversation._id}`);
       setMessages(response.data.data);
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      console.error("Failed to load messages:", error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -221,38 +264,40 @@ export default function Dashboard() {
       });
 
       const sentMessage = response.data.data;
-      setMessages((prev) => [...prev, sentMessage]);
+      setMessages((previousMessages) => [...previousMessages, sentMessage]);
 
-      setConversations((prev) =>
-        prev
-          .map((c) =>
-            c._id === selectedConversation._id
+      setConversations((previousConversations) =>
+        previousConversations
+          .map((conversation) =>
+            conversation._id === selectedConversation._id
               ? {
-                  ...c,
+                  ...conversation,
                   lastMessage: sentMessage,
                   updatedAt: sentMessage.createdAt,
                 }
-              : c,
+              : conversation,
           )
           .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
       );
 
       setMessageText("");
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Failed to send message:", error);
     }
   };
 
-  const handleEmojiClick = (emojiData) => {
-    setMessageText((prev) => prev + emojiData.emoji);
+  const handleEmojiSelect = (emojiData) => {
+    setMessageText((previousText) => previousText + emojiData.emoji);
   };
 
   const handleDeleteMessage = async (messageId) => {
     try {
       await api.delete(`/message/${messageId}`);
-      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      setMessages((previousMessages) =>
+        previousMessages.filter((message) => message._id !== messageId),
+      );
     } catch (error) {
-      console.error("Error deleting message:", error);
+      console.error("Failed to delete message:", error);
     }
   };
 
@@ -266,15 +311,19 @@ export default function Dashboard() {
 
     try {
       await api.delete(`/conversation/${conversationToDelete._id}`);
-      setConversations((prev) =>
-        prev.filter((c) => c._id !== conversationToDelete._id),
+
+      setConversations((previousConversations) =>
+        previousConversations.filter(
+          (conversation) => conversation._id !== conversationToDelete._id,
+        ),
       );
+
       if (selectedConversation?._id === conversationToDelete._id) {
         setSelectedConversation(null);
         setMessages([]);
       }
     } catch (error) {
-      console.error("Error deleting conversation:", error);
+      console.error("Failed to delete conversation:", error);
     } finally {
       setConversationToDelete(null);
     }
@@ -286,7 +335,7 @@ export default function Dashboard() {
       setAvailableUsers(response.data.data);
       setShowNewChatModal(true);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Failed to load contacts:", error);
     }
   };
 
@@ -295,28 +344,38 @@ export default function Dashboard() {
       const response = await api.post("/conversation", { receiverId });
       const newConversation = response.data.data;
 
-      setConversations((prev) => {
-        const exists = prev.some((c) => c._id === newConversation._id);
-        return exists ? prev : [newConversation, ...prev];
+      setConversations((previousConversations) => {
+        const alreadyExists = previousConversations.some(
+          (conversation) => conversation._id === newConversation._id,
+        );
+        return alreadyExists
+          ? previousConversations
+          : [newConversation, ...previousConversations];
       });
 
       setShowNewChatModal(false);
       openConversation(newConversation);
     } catch (error) {
-      console.error("Error creating conversation:", error);
+      console.error("Failed to start conversation:", error);
     }
   };
+
+  // ---------------------------------------------------------------------
+  // Profile actions
+  // ---------------------------------------------------------------------
 
   const openProfileModal = async () => {
     try {
       const response = await api.get("/user/profile");
-      setProfileData(response.data.data);
-      setEditName(response.data.data.name || "");
-      setEditBio(response.data.data.bio || "");
-      setEditProfilePic(response.data.data.profilePic || AVATAR_OPTIONS[0]);
+      const currentProfile = response.data.data;
+
+      setProfileData(currentProfile);
+      setEditName(currentProfile.name || "");
+      setEditBio(currentProfile.bio || "");
+      setEditProfilePic(currentProfile.profilePic || AVATAR_OPTIONS[0]);
       setShowProfileModal(true);
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("Failed to load profile:", error);
     }
   };
 
@@ -328,15 +387,16 @@ export default function Dashboard() {
         profilePic: editProfilePic,
       });
 
-      const updatedData = response.data.data;
-      setProfileData(updatedData);
+      const updatedProfile = response.data.data;
+      setProfileData(updatedProfile);
       setIsEditingProfile(false);
 
-      const currentStoredUser = JSON.parse(localStorage.getItem("user")) || {};
-      const mergedUser = { ...currentStoredUser, name: updatedData.name };
+      // Keep the cached user record (used for the display name) in sync.
+      const cachedUser = JSON.parse(localStorage.getItem("user")) || {};
+      const mergedUser = { ...cachedUser, name: updatedProfile.name };
       localStorage.setItem("user", JSON.stringify(mergedUser));
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("Failed to update profile:", error);
     }
   };
 
@@ -344,31 +404,21 @@ export default function Dashboard() {
     try {
       await api.post("/auth/logout");
     } catch (error) {
-      console.error("Error logging out from server:", error);
+      console.error("Failed to log out on the server:", error);
     }
+
     socketRef.current?.disconnect();
     logout();
     navigate("/login");
   };
 
-  // Group conversations alphabetically (A-Z, like the reference contacts list)
-
-  const groupedConversations = filteredConversations.reduce(
-    (groups, conversation) => {
-      const partner = getConversationPartner(conversation);
-      if (!partner) return groups;
-      const letter = partner.name?.[0]?.toUpperCase() || "#";
-      if (!groups[letter]) groups[letter] = [];
-      groups[letter].push(conversation);
-      return groups;
-    },
-    {},
-  );
-
+  // ---------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------
   return (
     <div className="h-dvh flex flex-col bg-background font-body overflow-hidden">
-      {/* NAVBAR  */}
-      <div className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-brand">
+      {/* ===================== Top navigation bar ===================== */}
+      <header className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-brand">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
             <MessageCircle
@@ -401,11 +451,11 @@ export default function Dashboard() {
             <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
-      </div>
+      </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/*  SIDEBAR  */}
-        <div
+        {/* ===================== Conversation list ===================== */}
+        <aside
           className={`w-full sm:w-80 sm:shrink-0 bg-surface border-r border-border flex-col ${
             selectedConversation ? "hidden sm:flex" : "flex"
           }`}
@@ -423,7 +473,7 @@ export default function Dashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
@@ -431,10 +481,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto p-2">
             {isLoadingConversations ? (
               <p className="text-center text-sm text-text-secondary mt-6">
-                Loading...
+                Loading conversations...
               </p>
             ) : filteredConversations.length === 0 ? (
               <div className="text-center mt-10 px-6">
@@ -449,78 +499,97 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              Object.keys(groupedConversations)
-                .sort()
-                .map((letter) => (
-                  <div key={letter}>
-                    <p className="px-4 pt-3 pb-1 text-xs font-semibold text-brand">
-                      {letter}
-                    </p>
-                    <div className="px-2 space-y-1">
-                      {groupedConversations[letter].map((conversation) => {
-                        const partner = getConversationPartner(conversation);
-                        const isPartnerOnline = onlineUserIds.includes(
-                          String(partner._id),
-                        );
+              filteredConversations.map((conversation) => {
+                const partner = getConversationPartner(conversation);
+                if (!partner) return null;
 
-                        return (
-                          <button
-                            key={conversation._id}
-                            onClick={() => openConversation(conversation)}
-                            className={`group w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition-colors duration-150 ${
-                              selectedConversation?._id === conversation._id
-                                ? "bg-brand-light"
-                                : "hover:bg-background"
-                            }`}
-                          >
-                            <div className="relative shrink-0">
-                              {renderAvatar(partner.profilePic, "w-11 h-11")}
-                              {isPartnerOnline && (
-                                <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
-                              )}
-                            </div>
+                const isPartnerOnline = onlineUserIds.includes(
+                  String(partner._id),
+                );
 
-                            <div className="flex-1 min-w-0 text-left">
-                              <p className="text-sm font-semibold text-text-primary truncate">
-                                {partner.name}
-                              </p>
-                              <p className="text-xs text-text-secondary truncate mt-0.5">
-                                {conversation.lastMessage?.text ||
-                                  "Start a conversation"}
-                              </p>
-                            </div>
-
-                            <button
-                              onClick={(e) =>
-                                promptDeleteConversation(conversation, e)
-                              }
-                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 shrink-0"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </button>
-                        );
-                      })}
+                return (
+                  <button
+                    key={conversation._id}
+                    onClick={() => openConversation(conversation)}
+                    className={`group w-full flex items-center gap-3 px-2 py-2.5 rounded-xl transition-colors duration-150 ${
+                      selectedConversation?._id === conversation._id
+                        ? "bg-brand-light"
+                        : "hover:bg-background"
+                    }`}
+                  >
+                    <div className="relative shrink-0">
+                      {renderAvatar(partner.profilePic, "w-11 h-11")}
+                      {isPartnerOnline && (
+                        <Circle className="absolute bottom-0 right-0 w-3 h-3 fill-success text-success ring-2 ring-surface rounded-full" />
+                      )}
                     </div>
-                  </div>
-                ))
+
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-text-primary truncate">
+                          {partner.name}
+                        </p>
+                        {conversation.updatedAt && (
+                          <span className="text-xs text-text-secondary shrink-0 ml-2">
+                            {new Date(
+                              conversation.updatedAt,
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-text-secondary truncate mt-0.5">
+                        {conversation.lastMessage?.text ||
+                          "Start a conversation"}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(event) =>
+                        promptDeleteConversation(conversation, event)
+                      }
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 shrink-0"
+                      aria-label="Delete conversation"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </button>
+                );
+              })
             )}
           </div>
-        </div>
+        </aside>
 
-        {/* CHAT AREA */}
-        <div
+        {/* ===================== Active chat panel ===================== */}
+        <main
           className={`flex-1 flex-col bg-background min-h-0 ${
             selectedConversation ? "flex" : "hidden sm:flex"
           }`}
         >
           {!selectedConversation ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-3">
+            // Empty state shown before any conversation is selected.
+            <div
+              className="flex-1 flex items-center justify-center"
+              style={{
+                backgroundImage:
+                  "radial-gradient(var(--tw-color-border) 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            >
+              <div className="text-center bg-surface/80 backdrop-blur-sm rounded-2xl px-10 py-8">
+                <div className="w-16 h-16 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-4">
                   <MessageCircle className="w-8 h-8 text-brand" />
                 </div>
-                <p className="text-text-secondary">Select a conversation</p>
+                <h2 className="font-heading font-bold text-text-primary text-lg">
+                  Welcome to Convo
+                </h2>
+                <p className="text-sm text-text-secondary mt-1">
+                  Select a conversation from the left
+                  <br />
+                  or start a new one.
+                </p>
               </div>
             </div>
           ) : (
@@ -530,6 +599,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => setSelectedConversation(null)}
                   className="sm:hidden text-text-secondary hover:text-text-primary"
+                  aria-label="Back to conversation list"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -556,13 +626,13 @@ export default function Dashboard() {
                           {isPartnerOnline ? "Online" : "Offline"}
                         </p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-text-secondary shrink-0" />
+                      <MoreVertical className="w-5 h-5 text-text-secondary shrink-0" />
                     </>
                   );
                 })()}
               </div>
 
-              {/* Messages */}
+              {/* Message thread */}
               <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-5 py-4 space-y-3">
                 {isLoadingMessages ? (
                   <p className="text-center text-sm text-text-secondary">
@@ -575,37 +645,38 @@ export default function Dashboard() {
                     </p>
                   </div>
                 ) : (
-                  messages.map((chatMessage) => {
+                  messages.map((message) => {
                     const senderId = String(
-                      chatMessage.sender?._id || chatMessage.sender,
+                      message.sender?._id || message.sender,
                     );
-                    const isCurrentUserMessage = senderId === currentUserId;
+                    const isOwnMessage = senderId === currentUserId;
 
                     return (
                       <div
-                        key={chatMessage._id}
+                        key={message._id}
                         className={`group flex items-end gap-1.5 ${
-                          isCurrentUserMessage ? "justify-end" : "justify-start"
+                          isOwnMessage ? "justify-end" : "justify-start"
                         }`}
                       >
-                        {isCurrentUserMessage && (
+                        {isOwnMessage && (
                           <button
-                            onClick={() => handleDeleteMessage(chatMessage._id)}
+                            onClick={() => handleDeleteMessage(message._id)}
                             className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-error/10 text-text-secondary hover:text-error transition-all duration-150 mb-1"
+                            aria-label="Delete message"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
 
                         <div
-                          className={`relative max-w-[75%] sm:max-w-xs px-4 py-2.5 ${
-                            isCurrentUserMessage
+                          className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 ${
+                            isOwnMessage
                               ? "bg-brand text-text-onBrand rounded-2xl rounded-br-md"
                               : "bg-surface text-text-primary border border-border rounded-2xl rounded-bl-md"
                           }`}
                         >
-                          <p className="text-sm font-bold break-words">
-                            {chatMessage.text}
+                          <p className="text-sm font-medium break-words">
+                            {message.text}
                           </p>
                         </div>
                       </div>
@@ -615,7 +686,7 @@ export default function Dashboard() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message input */}
+              {/* Message composer */}
               <form
                 onSubmit={handleSendMessage}
                 className="relative shrink-0 p-3 sm:p-4 border-t border-border bg-surface flex items-center gap-2 sm:gap-3"
@@ -626,7 +697,7 @@ export default function Dashboard() {
                 {showEmojiPicker && (
                   <div className="absolute bottom-full right-4 sm:right-5 mb-2 z-20">
                     <EmojiPicker
-                      onEmojiClick={handleEmojiClick}
+                      onEmojiClick={handleEmojiSelect}
                       height={350}
                       width={300}
                     />
@@ -636,8 +707,9 @@ export default function Dashboard() {
                 <button
                   type="button"
                   data-emoji-trigger
-                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                  onClick={() => setShowEmojiPicker((previous) => !previous)}
                   className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-text-secondary hover:text-brand hover:bg-brand-light transition-colors duration-200"
+                  aria-label="Toggle emoji picker"
                 >
                   <Smile className="w-5 h-5" />
                 </button>
@@ -654,16 +726,17 @@ export default function Dashboard() {
                   type="submit"
                   disabled={!messageText.trim()}
                   className="w-10 h-10 shrink-0 rounded-full bg-brand text-text-onBrand flex items-center justify-center disabled:opacity-50 hover:bg-brand-dark transition-colors duration-200"
+                  aria-label="Send message"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </form>
             </>
           )}
-        </div>
+        </main>
       </div>
 
-      {/* NEW CHAT MODAL */}
+      {/* ===================== New chat modal ===================== */}
       <AnimatePresence>
         {showNewChatModal && (
           <motion.div
@@ -687,6 +760,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => setShowNewChatModal(false)}
                   className="text-text-secondary hover:text-text-primary"
+                  aria-label="Close"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -695,18 +769,18 @@ export default function Dashboard() {
               <div className="flex-1 overflow-y-auto py-2">
                 {availableUsers.length === 0 ? (
                   <p className="text-center text-sm text-text-secondary p-6">
-                    No users found
+                    No contacts found
                   </p>
                 ) : (
-                  availableUsers.map((availableUser) => (
+                  availableUsers.map((contact) => (
                     <button
-                      key={availableUser._id}
-                      onClick={() => startConversation(availableUser._id)}
+                      key={contact._id}
+                      onClick={() => startConversation(contact._id)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-background transition-colors text-left"
                     >
-                      {renderAvatar(availableUser.profilePic, "w-10 h-10")}
+                      {renderAvatar(contact.profilePic, "w-10 h-10")}
                       <p className="text-sm font-medium text-text-primary">
-                        {availableUser.name}
+                        {contact.name}
                       </p>
                     </button>
                   ))
@@ -717,7 +791,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* PROFILE MODAL */}
+      {/* ===================== Profile modal ===================== */}
       <AnimatePresence>
         {showProfileModal && profileData && (
           <motion.div
@@ -747,6 +821,7 @@ export default function Dashboard() {
                     setIsEditingProfile(false);
                   }}
                   className="text-text-secondary hover:text-text-primary"
+                  aria-label="Close"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -801,7 +876,7 @@ export default function Dashboard() {
                           >
                             <img
                               src={avatarUrl}
-                              alt="avatar option"
+                              alt="Avatar option"
                               className="w-full h-full bg-brand-light"
                             />
                           </button>
@@ -816,7 +891,7 @@ export default function Dashboard() {
                       <input
                         type="text"
                         value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
+                        onChange={(event) => setEditName(event.target.value)}
                         className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
                       />
                     </div>
@@ -827,7 +902,7 @@ export default function Dashboard() {
                       </label>
                       <textarea
                         value={editBio}
-                        onChange={(e) => setEditBio(e.target.value)}
+                        onChange={(event) => setEditBio(event.target.value)}
                         rows={3}
                         placeholder="Write something about yourself..."
                         className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200 resize-none"
@@ -860,7 +935,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* ===================== Delete confirmation modal ===================== */}
       <AnimatePresence>
         {conversationToDelete && (
           <motion.div

@@ -9,6 +9,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,37 +38,48 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-dvh w-full flex items-center justify-center bg-background px-4 py-10 font-body">
+    <div className="min-h-dvh w-full flex items-center justify-center bg-background px-4 py-8 font-body">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-sm bg-surface rounded-3xl shadow-xl overflow-hidden"
+        className="w-full max-w-3xl bg-surface rounded-3xl shadow-xl overflow-hidden flex"
       >
-        {/* Illustration header */}
-        <div className="bg-brand px-8 pt-10 pb-8 flex flex-col items-center">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-            className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center mb-4"
-          >
+        {/* Left illustration panel */}
+        <div className="hidden lg:flex lg:w-1/2 bg-brand flex-col items-center justify-center p-10 relative overflow-hidden">
+          <div className="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center mb-5">
             <MessageCircle
-              className="w-8 h-8 text-text-onBrand"
+              className="w-12 h-12 text-text-onBrand"
               fill="currentColor"
               strokeWidth={0}
             />
-          </motion.div>
-          <h1 className="text-xl font-heading font-bold text-text-onBrand">
-            Welcome Back
-          </h1>
-          <p className="text-sm text-white/70 mt-1 text-center">
-            Login to continue your conversations
-          </p>
+          </div>
+          <h2 className="text-3xl font-heading font-bold text-text-onBrand">
+            Convo
+          </h2>
+          <p className="text-sm text-white/70 mt-1">Connect. Chat. Share.</p>
         </div>
 
-        {/* Form */}
-        <div className="p-8">
+        {/* Form panel */}
+        <div className="w-full lg:w-1/2 p-8 sm:p-10">
+          <div className="lg:hidden flex flex-col items-center mb-6">
+            <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center mb-3">
+              <MessageCircle
+                className="w-7 h-7 text-text-onBrand"
+                fill="currentColor"
+                strokeWidth={0}
+              />
+            </div>
+            <h2 className="text-xl font-heading font-bold text-brand">Convo</h2>
+          </div>
+
+          <h1 className="text-xl font-heading font-bold text-text-primary">
+            Welcome Back
+          </h1>
+          <p className="text-sm text-text-secondary mt-1 mb-7">
+            Login to continue your conversations
+          </p>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">
@@ -116,7 +128,16 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={() => setRememberMe(!rememberMe)}
+                  className="w-4 h-4 rounded accent-brand cursor-pointer"
+                />
+                Remember me
+              </label>
               <a
                 href="#"
                 className="text-sm text-brand hover:text-brand-dark font-medium"
