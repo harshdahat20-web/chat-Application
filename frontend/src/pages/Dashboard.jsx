@@ -36,7 +36,6 @@ const AVATAR_OPTIONS = [
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Simran&top=longHairBun&backgroundColor=10B981",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya&top=longHairStraight2&backgroundColor=EF4444",
 ];
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
