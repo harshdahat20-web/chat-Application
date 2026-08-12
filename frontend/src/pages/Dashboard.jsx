@@ -27,15 +27,16 @@ const SOCKET_URL =
 
 // Preset avatar choices shown in the profile editor.
 const AVATAR_OPTIONS = [
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&top=shortHairShortFlat&backgroundColor=116857",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir&top=shortHairTheCaesar&backgroundColor=3B82F6",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan&top=shortHairShortCurly&backgroundColor=F97316",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram&top=shortHairShortWaved&backgroundColor=A855F7",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Riya&top=longHairStraight&backgroundColor=EC4899",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Meera&top=longHairCurly&backgroundColor=F59E0B",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Simran&top=longHairBun&backgroundColor=10B981",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya&top=longHairStraight2&backgroundColor=EF4444",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&top=shortFlat&backgroundColor=116857",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir&top=theCaesar&backgroundColor=3B82F6",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan&top=shortCurly&backgroundColor=F97316",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram&top=shortWaved&backgroundColor=A855F7",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Riya&top=straight01&backgroundColor=EC4899",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Meera&top=curly&backgroundColor=F59E0B",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Simran&top=bun&backgroundColor=10B981",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya&top=straight02&backgroundColor=EF4444",
 ];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
