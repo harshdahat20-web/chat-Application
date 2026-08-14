@@ -22,8 +22,8 @@ export default {
         error: "#DC2626",
       },
       fontFamily: {
-        heading: ["Poppins", "sans-serif"],
-        body: ["Inter", "sans-serif"],
+        heading: ["Fredoka", "sans-serif"],
+        body: ["Nunito", "sans-serif"],
       },
     },
   },
