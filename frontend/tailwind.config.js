@@ -4,20 +4,18 @@ export default {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#116857",
-          dark: "#0C4F42",
-          light: "#DCEEE9",
+          DEFAULT: "#2F6FED",
+          dark: "#1D4FC4",
+          light: "#E4EDFC",
         },
-        background: "#F5F3EE",
+        background: "#EAF2FB",
         surface: "#FFFFFF",
-        border: "#E2DFD6",
-
+        border: "#D7E3F0",
         text: {
           primary: "#1F2937",
           secondary: "#6B7280",
           onBrand: "#FFFFFF",
         },
-
         success: "#16A34A",
         error: "#DC2626",
       },

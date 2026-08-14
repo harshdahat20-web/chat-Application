@@ -4,11 +4,12 @@ import {
   Search,
   LogOut,
   MessageCircle,
+  MessageSquare,
+  Users,
   User,
   Send,
   Circle,
   ArrowLeft,
-  Plus,
   X,
   Trash2,
   Smile,
@@ -20,14 +21,12 @@ import { io } from "socket.io-client";
 import EmojiPicker from "emoji-picker-react";
 import { useAuth } from "../context/AuthContext";
 
-// Base URL for the Socket.io connection, derived from the REST API URL.
 const SOCKET_URL =
   import.meta.env.VITE_API_URL?.replace("/api/v1", "") ||
   "http://localhost:3000";
 
-// Preset avatar choices shown in the profile editor.
 const AVATAR_OPTIONS = [
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&top=shortFlat&backgroundColor=116857",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&top=shortFlat&backgroundColor=2F6FED",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir&top=theCaesar&backgroundColor=3B82F6",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan&top=shortCurly&backgroundColor=F97316",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram&top=shortWaved&backgroundColor=A855F7",
@@ -41,9 +40,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  // ---------------------------------------------------------------------
-  // State
-  // ---------------------------------------------------------------------
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -73,11 +69,6 @@ export default function Dashboard() {
   const storedUser = JSON.parse(localStorage.getItem("user")) || {};
   const currentUserId = String(storedUser._id || storedUser.id || "");
 
-  // ---------------------------------------------------------------------
-  // Data fetching helpers
-  // ---------------------------------------------------------------------
-
-  /** Fetches the latest conversation list from the server. */
   const refreshConversations = async () => {
     try {
       const response = await api.get("/conversation");
@@ -87,9 +78,6 @@ export default function Dashboard() {
     }
   };
 
-  // ---------------------------------------------------------------------
-  // Socket.io connection lifecycle
-  // ---------------------------------------------------------------------
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -100,14 +88,11 @@ export default function Dashboard() {
 
     socketRef.current = socket;
 
-    // Server broadcasts the list of currently connected user IDs.
     socket.on("onlineUsers", (userIds) => {
       setOnlineUserIds(userIds.map(String));
     });
 
-    // Server pushes a new message in real time.
     socket.on("newMessage", (incomingMessage) => {
-      // Append to the open conversation's message thread, if applicable.
       setMessages((previousMessages) => {
         const isDuplicate = previousMessages.some(
           (existingMessage) => existingMessage._id === incomingMessage._id,
@@ -117,7 +102,6 @@ export default function Dashboard() {
           : [...previousMessages, incomingMessage];
       });
 
-      // Update the conversation list preview and ordering.
       setConversations((previousConversations) => {
         const conversationExists = previousConversations.some(
           (conversation) => conversation._id === incomingMessage.conversation,
@@ -137,8 +121,6 @@ export default function Dashboard() {
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         }
 
-        // First message of a brand-new conversation — refetch the list
-        // so it appears without requiring a manual page refresh.
         refreshConversations();
         return previousConversations;
       });
@@ -149,9 +131,6 @@ export default function Dashboard() {
     };
   }, [currentUserId]);
 
-  // ---------------------------------------------------------------------
-  // Initial data loading
-  // ---------------------------------------------------------------------
   useEffect(() => {
     const loadConversations = async () => {
       setIsLoadingConversations(true);
@@ -175,12 +154,10 @@ export default function Dashboard() {
     loadCurrentUserProfile();
   }, []);
 
-  // Keep the message thread scrolled to the latest message.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Close the emoji picker when the user clicks outside of it.
   useEffect(() => {
     if (!showEmojiPicker) return;
 
@@ -197,11 +174,17 @@ export default function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
-  // ---------------------------------------------------------------------
-  // Presentation helpers
-  // ---------------------------------------------------------------------
+  // -----------------------------------------
 
-  /** Renders a user's avatar image, falling back to a generic icon. */
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedConversation(null);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const renderAvatar = (avatarUrl, sizeClassName = "w-10 h-10") => {
     if (avatarUrl) {
       return (
@@ -222,7 +205,6 @@ export default function Dashboard() {
     );
   };
 
-  /** Returns the other participant in a 1-on-1 conversation. */
   const getConversationPartner = (conversation) => {
     return conversation.participants.find(
       (participant) => String(participant._id) !== currentUserId,
@@ -234,14 +216,14 @@ export default function Dashboard() {
     return partner?.name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  // ---------------------------------------------------------------------
-  // Conversation and message actions
-  // ---------------------------------------------------------------------
-
   const openConversation = async (conversation) => {
     setSelectedConversation(conversation);
     setMessages([]);
     setIsLoadingMessages(true);
+
+    if (!window.history.state?.chatOpen) {
+      window.history.pushState({ chatOpen: true }, "");
+    }
 
     try {
       const response = await api.get(`/message/${conversation._id}`);
@@ -250,6 +232,14 @@ export default function Dashboard() {
       console.error("Failed to load messages:", error);
     } finally {
       setIsLoadingMessages(false);
+    }
+  };
+
+  const closeConversation = () => {
+    if (window.history.state?.chatOpen) {
+      window.history.back();
+    } else {
+      setSelectedConversation(null);
     }
   };
 
@@ -360,10 +350,6 @@ export default function Dashboard() {
     }
   };
 
-  // ---------------------------------------------------------------------
-  // Profile actions
-  // ---------------------------------------------------------------------
-
   const openProfileModal = async () => {
     try {
       const response = await api.get("/user/profile");
@@ -391,7 +377,6 @@ export default function Dashboard() {
       setProfileData(updatedProfile);
       setIsEditingProfile(false);
 
-      // Keep the cached user record (used for the display name) in sync.
       const cachedUser = JSON.parse(localStorage.getItem("user")) || {};
       const mergedUser = { ...cachedUser, name: updatedProfile.name };
       localStorage.setItem("user", JSON.stringify(mergedUser));
@@ -412,46 +397,50 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  // ---------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------
   return (
-    <div className="h-dvh flex flex-col bg-background font-body overflow-hidden">
-      {/* ===================== Top navigation bar ===================== */}
-      <header className="h-16 shrink-0 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-brand">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-            <MessageCircle
-              className="w-5 h-5 text-text-onBrand"
-              fill="currentColor"
-              strokeWidth={0}
-            />
-          </div>
-          <span className="text-lg font-heading font-bold text-text-onBrand hidden sm:inline">
-            Convo
-          </span>
+    <div className="h-dvh flex bg-background font-body overflow-hidden">
+      {/* ===================== (desktop) ===================== */}
+      <nav className="hidden sm:flex w-20 shrink-0 bg-surface border-r border-border flex-col items-center py-5 gap-6">
+        <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center">
+          <MessageCircle
+            className="w-5 h-5 text-text-onBrand"
+            fill="currentColor"
+            strokeWidth={0}
+          />
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex flex-col gap-2 flex-1">
           <button
-            onClick={openProfileModal}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            className="w-11 h-11 rounded-xl bg-brand-light flex items-center justify-center text-brand"
+            aria-label="Chats"
           >
-            {renderAvatar(profileData?.profilePic, "w-9 h-9")}
-            <span className="text-sm font-medium text-text-onBrand hidden sm:inline">
-              {storedUser.name || "User"}
-            </span>
+            <MessageSquare className="w-5 h-5" />
           </button>
-
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-text-onBrand/90 hover:text-text-onBrand border border-white/25 rounded-full px-3 py-1.5 transition-colors"
+            onClick={openNewChatModal}
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-text-secondary hover:bg-background hover:text-brand transition-colors"
+            aria-label="Contacts"
           >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
+            <Users className="w-5 h-5" />
           </button>
         </div>
-      </header>
+
+        <button
+          onClick={openProfileModal}
+          className="hover:opacity-80 transition-opacity"
+          aria-label="My profile"
+        >
+          {renderAvatar(profileData?.profilePic, "w-10 h-10")}
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="w-11 h-11 rounded-xl flex items-center justify-center text-text-secondary hover:bg-error/10 hover:text-error transition-colors"
+          aria-label="Logout"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
+      </nav>
 
       <div className="flex flex-1 overflow-hidden">
         {/* ===================== Conversation list ===================== */}
@@ -460,15 +449,41 @@ export default function Dashboard() {
             selectedConversation ? "hidden sm:flex" : "flex"
           }`}
         >
-          <div className="p-4 space-y-3 border-b border-border shrink-0">
-            <button
-              onClick={openNewChatModal}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-text-onBrand text-sm font-semibold hover:bg-brand-dark transition-colors duration-200"
-            >
-              <Plus className="w-4 h-4" />
-              New Chat
-            </button>
+          <div className="h-16 shrink-0 px-4 flex items-center justify-between border-b border-border sm:hidden">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center">
+                <MessageCircle
+                  className="w-4 h-4 text-text-onBrand"
+                  fill="currentColor"
+                  strokeWidth={0}
+                />
+              </div>
+              <span className="font-heading font-bold text-text-primary">
+                Convo
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={openNewChatModal}
+                className="text-text-secondary hover:text-brand transition-colors"
+                aria-label="New chat"
+              >
+                <Users className="w-5 h-5" />
+              </button>
+              <button onClick={openProfileModal} aria-label="My profile">
+                {renderAvatar(profileData?.profilePic, "w-8 h-8")}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-text-secondary hover:text-error transition-colors"
+                aria-label="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
 
+          <div className="p-4 border-b border-border shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input
@@ -476,10 +491,14 @@ export default function Dashboard() {
                 placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
+                className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary placeholder-text-secondary/70 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all duration-200"
               />
             </div>
           </div>
+
+          <p className="px-4 pt-3 pb-1 text-xs font-semibold text-text-secondary tracking-wide">
+            RECENT CHATS
+          </p>
 
           <div className="flex-1 overflow-y-auto p-2">
             {isLoadingConversations ? (
@@ -569,35 +588,19 @@ export default function Dashboard() {
           }`}
         >
           {!selectedConversation ? (
-            // Empty state shown before any conversation is selected.
-            <div
-              className="flex-1 flex items-center justify-center"
-              style={{
-                backgroundImage:
-                  "radial-gradient(var(--tw-color-border) 1px, transparent 1px)",
-                backgroundSize: "24px 24px",
-              }}
-            >
-              <div className="text-center bg-surface/80 backdrop-blur-sm rounded-2xl px-10 py-8">
-                <div className="w-16 h-16 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-4">
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-brand-light flex items-center justify-center mx-auto mb-3">
                   <MessageCircle className="w-8 h-8 text-brand" />
                 </div>
-                <h2 className="font-heading font-bold text-text-primary text-lg">
-                  Welcome to Convo
-                </h2>
-                <p className="text-sm text-text-secondary mt-1">
-                  Select a conversation from the left
-                  <br />
-                  or start a new one.
-                </p>
+                <p className="text-text-secondary">Select a conversation</p>
               </div>
             </div>
           ) : (
             <>
-              {/* Chat header */}
               <div className="h-16 shrink-0 px-4 sm:px-5 flex items-center gap-3 border-b border-border bg-surface">
                 <button
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={closeConversation}
                   className="sm:hidden text-text-secondary hover:text-text-primary"
                   aria-label="Back to conversation list"
                 >
@@ -632,7 +635,6 @@ export default function Dashboard() {
                 })()}
               </div>
 
-              {/* Message thread */}
               <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-5 py-4 space-y-3">
                 {isLoadingMessages ? (
                   <p className="text-center text-sm text-text-secondary">
@@ -669,10 +671,10 @@ export default function Dashboard() {
                         )}
 
                         <div
-                          className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 ${
+                          className={`max-w-[75%] sm:max-w-xs px-4 py-2.5 rounded-2xl ${
                             isOwnMessage
-                              ? "bg-brand text-text-onBrand rounded-2xl rounded-br-md"
-                              : "bg-surface text-text-primary border border-border rounded-2xl rounded-bl-md"
+                              ? "bg-brand text-text-onBrand rounded-br-md"
+                              : "bg-surface text-text-primary border border-border rounded-bl-md"
                           }`}
                         >
                           <p className="text-sm font-medium break-words">
@@ -686,7 +688,6 @@ export default function Dashboard() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message composer */}
               <form
                 onSubmit={handleSendMessage}
                 className="relative shrink-0 p-3 sm:p-4 border-t border-border bg-surface flex items-center gap-2 sm:gap-3"
